@@ -1382,6 +1382,7 @@ function stepsPrompt(i) {
 function aiError(e) {
   if (e && e.code === 'not_granted') { S.aiOk = false; return 'Para usar esta función hay que permitir que la página consulte a Claude.'; }
   if (e && e.code === 'rate_limited') return 'Claude está recibiendo muchos pedidos. Probá de nuevo en un rato.';
+  if (e && e.code === 'upstream' && e.message) return 'Claude devolvió un error. ' + e.message;
   return 'No se pudo generar esta vez. Probá de nuevo.';
 }
 async function runIdeas(pedido, blob, photoUrl) {

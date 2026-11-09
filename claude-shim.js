@@ -22,7 +22,7 @@
     var r = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt, images: images, tier: opts.modelTier || 'default' }) });
     if (r.status === 501 || r.status === 404) { available = false; throw { code: 'not_granted', message: 'Claude no está configurado en este sitio.' }; }
     if (r.status === 429) throw { code: 'rate_limited', message: 'Demasiados pedidos.' };
-    if (!r.ok) throw { code: 'unavailable', message: 'Error ' + r.status };
+    if (!r.ok) { var ej = {}; try { ej = await r.json(); } catch (e) {} throw { code: 'upstream', message: 'Error ' + r.status + (ej.message ? ': ' + ej.message : '') }; }
     var j = await r.json();
     return { text: String(j.text || ''), truncated: !!j.truncated };
   }

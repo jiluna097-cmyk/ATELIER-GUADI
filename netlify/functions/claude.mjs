@@ -14,7 +14,24 @@ export default async (req) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin };
 
   if (!key) return new Response(JSON.stringify({ error: 'Falta ANTHROPIC_API_KEY' }), { status: 501, headers });
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+  if (req.method === 'GET') {
+    const url = new URL(req.url);
+    if (!url.searchParams.has('test')) return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    // Diagnóstico: /.netlify/functions/claude?test=1
+    const t = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5', max_tokens: 20, messages: [{ role: 'user', content: 'Respondé solo: funciona' }] })
+    });
+    const tj = await t.json().catch(() => ({}));
+    const ok = t.ok;
+    return new Response(JSON.stringify({
+      clave_cargada: true,
+      modelo: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5',
+      resultado: ok ? 'OK: Claude responde' : 'ERROR ' + t.status,
+      detalle: ok ? (tj.content || []).map((c) => c.text).join('') : (tj.error && tj.error.message) || tj
+    }, null, 2), { status: 200, headers });
+  }
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers });
 
   let body;
@@ -43,7 +60,9 @@ export default async (req) => {
   if (r.status === 429) return new Response(JSON.stringify({ error: 'rate_limited' }), { status: 429, headers });
   if (!r.ok) {
     const detail = await r.text();
-    return new Response(JSON.stringify({ error: 'upstream', status: r.status, detail: detail.slice(0, 500) }), { status: 502, headers });
+    let msg = detail.slice(0, 300);
+    try { const dj = JSON.parse(detail); msg = (dj.error && dj.error.message) || msg; } catch {}
+    return new Response(JSON.stringify({ error: 'upstream', status: r.status, message: msg }), { status: 502, headers });
   }
   const j = await r.json();
   const text = (j.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
