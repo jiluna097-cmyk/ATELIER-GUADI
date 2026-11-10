@@ -349,6 +349,7 @@ button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 
 .outs button b{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:21px}.outs button span{font-size:12.5px;color:var(--muted)}
 .outs button:first-child{background:var(--ink);border-color:var(--ink);color:#F7F2EA}.outs button:first-child span{color:#CFC4B6}
 .advbox{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px dashed #D3C6B6;border-radius:16px}
+.laybox{display:flex;flex-direction:column;gap:10px}
 /* navegación */
 nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
@@ -3431,6 +3432,7 @@ function patMot(k) {
 function paintPattern(g, x0, y0, W, H, des, wrap) {
   var P = PL.pat, cols = Math.max(1, Math.round(P.cols)), cw = W / cols, rows = P.rows > 0 ? Math.round(P.rows) : Math.max(1, Math.round(H / cw)), ch = H / rows;
   var box = Math.min(cw, ch) * PL.size / 100, m2 = patMot(P.mot2);
+  if (window.PAT_TINT) { var tc = document.createElement('canvas'); tc.width = m2.width; tc.height = m2.height; var tg = tc.getContext('2d'); tg.drawImage(m2, 0, 0); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = PAT_TINT; tg.fillRect(0, 0, tc.width, tc.height); m2 = tc; }
   var drawOne = function (img, cx, cy, sz, rot, flip) {
     var dw = sz * img.width / Math.max(img.width, img.height), dh = sz * img.height / Math.max(img.width, img.height);
     var xs = wrap ? [cx - W, cx, cx + W] : [cx];
@@ -3515,7 +3517,7 @@ function vEstudio() {
     '<div class="stagewrap"><canvas id="stage" width="' + SW + '" height="' + SW + '" aria-label="Lienzo del diseño"></canvas>' + (has ? '' : '<div class="stagehint">Empezá con texto, un dibujo o una foto</div>') + '</div>' +
     (has ? studioBar() : '') + (ST.err ? '<p class="sm">' + esc(ST.err) + '</p>' : '') +
     (has ? stepHead(2, 'Probalo en la pieza', 'Se actualiza solo mientras diseñás') +
-      '<div class="pchips">' + pieces + '</div>' +
+      '<div class="pchips">' + pieces + '</div>' + layoutUI() +
       '<div class="live' + (LIVE.url ? '' : ' empty') + '"><img id="live3d" src="' + (LIVE.url || '') + '" alt="Tu diseño sobre la pieza"><button class="pill" data-st="try3d">' + I.cube + ' Girar en 3D</button></div>' +
       '<div class="inks glz"><span class="muted xs">Esmalte</span>' + glazes + '</div>' +
       stepHead(3, 'Llevalo a la arcilla') +
@@ -3581,6 +3583,65 @@ document.addEventListener('click', function (e) { var b = e.target.closest('butt
 document.addEventListener('input', function (e) {
   var d = e.target.dataset || {}; if (!d.patc) return;
   PL.pat[d.patc] = +e.target.value; var lv = document.getElementById('patcolv'); if (lv) lv.textContent = e.target.value; plSave(); clearTimeout(PL.t); PL.t = setTimeout(drawPlPreview, 80);
+});
+
+/* ---------- el diseño en la pieza 3D, con la misma disposición que la plantilla ---------- */
+function desColor(px) {
+  if (!ST.layers.length) return null;
+  var c = document.createElement('canvas'); c.width = c.height = px; var g = c.getContext('2d'); g.scale(px / SW, px / SW); paintLayers(g, {});
+  var d = g.getImageData(0, 0, px, px).data, x0 = px, y0 = px, x1 = -1, y1 = -1;
+  for (var y = 0; y < px; y += 2) for (var x = 0; x < px; x += 2) if (d[(y * px + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return null;
+  var o = document.createElement('canvas'); o.width = x1 - x0 + 3; o.height = y1 - y0 + 3; o.getContext('2d').drawImage(c, x0 - 1, y0 - 1, o.width, o.height, 0, 0, o.width, o.height); return o;
+}
+function wrapAspect(shape) {
+  if (shape === 'lata') return 2 * Math.PI * .333 / .9;
+  var p = P3[shape] || P3.taza, H = p[p.length - 1][1], r = 0; for (var k = 0; k < p.length; k++) r += p[k][0]; r /= p.length;
+  return Math.max(1.2, Math.min(4, 2 * Math.PI * r / H));
+}
+function makeTryIdea() {
+  var shape = ST.tryShape, glaze = ST.tryGlaze, des = desColor(900), cv, g;
+  window.PAT_TINT = ST.layers.length ? ST.layers[0].color : null; try { return makeTryIdea2(shape, glaze, des); } finally { window.PAT_TINT = null; }
+}
+function makeTryIdea2(shape, glaze, des) {
+  var cv, g;
+  if (shape === 'plato' || shape === 'cuenco') {
+    cv = document.createElement('canvas'); cv.width = cv.height = 1024; g = cv.getContext('2d'); g.fillStyle = glaze; g.fillRect(0, 0, 1024, 1024);
+    if (des) {
+      var R = 512, inner = shape === 'cuenco' ? .62 : .78;
+      g.save(); g.beginPath(); g.arc(R, R, R * inner, 0, 7); g.clip();
+      var sz = 1024 * inner * PL.size / 100 * .8, dw = sz * des.width / Math.max(des.width, des.height), dh = sz * des.height / Math.max(des.width, des.height);
+      if (PL.layout === 'repetir') { var n = Math.max(1, PL.n), rr = R * inner - Math.max(dw, dh) * .45; dw *= .45; dh *= .45; for (var i = 0; i < n; i++) { g.save(); g.translate(R, R); g.rotate(i * 2 * Math.PI / n); g.drawImage(des, -dw / 2, -rr - dh / 2 + dh * .1, dw, dh); g.restore(); } }
+      else if (PL.layout === 'patron') paintPattern(g, R - R * inner, R - R * inner, 2 * R * inner, 2 * R * inner, des, false);
+      else g.drawImage(des, R - dw / 2, R - dh / 2, dw, dh);
+      g.restore();
+    }
+    return { id: 'try', title: 'Tu diseño', shape: shape, glaze: '#FFFFFF', bg: '#EAE3D8', tecnica: '', pitch: '', tex: { kind: 'decal', canvas: cv } };
+  }
+  var W = 2048, H = Math.round(Math.max(512, Math.min(2048, W / wrapAspect(shape))));
+  cv = document.createElement('canvas'); cv.width = W; cv.height = H; g = cv.getContext('2d'); g.fillStyle = glaze; g.fillRect(0, 0, W, H);
+  if (des) {
+    var ppm = H / 100, keep = [PL.mt, PL.mb]; PL.mt = Math.min(PL.mt, 12); PL.mb = Math.min(PL.mb, 12);
+    paintBand(g, W, H, ppm, des); PL.mt = keep[0]; PL.mb = keep[1];
+  }
+  return { id: 'try', title: 'Tu diseño', shape: shape, glaze: glaze, bg: '#EAE3D8', tecnica: '', pitch: '', tex: { kind: shape === 'lata' ? 'label' : 'wrap', canvas: cv } };
+}
+function layoutUI() {
+  var chip = function (v, l) { return '<button class="chip' + (PL.layout === v ? ' on' : '') + '" data-pllayout="' + v + '">' + l + '</button>'; };
+  return '<div class="laybox"><span class="muted xs">Cómo va en la pieza</span><div class="chips tight">' + chip('centro', 'Uno al frente') + chip('repetir', 'Repetido') + chip('patron', 'Patrón') + '</div>' +
+    '<label class="sm">Tamaño: <b id="eszv">' + PL.size + ' %</b><input type="range" min="10" max="100" value="' + PL.size + '" data-esz="1"></label>' +
+    (PL.layout === 'repetir' ? '<label class="sm">Cantidad alrededor: <b id="esnv">' + PL.n + '</b><input type="range" min="2" max="12" value="' + PL.n + '" data-esn="1"></label>' : '') +
+    (PL.layout === 'patron' ? patUIcompact() : '') + '</div>';
+}
+document.addEventListener('input', function (e) {
+  var d = e.target.dataset || {};
+  if (d.esz) { PL.size = +e.target.value; var v = document.getElementById('eszv'); if (v) v.textContent = PL.size + ' %'; plSave(); scheduleLive(); }
+  if (d.esn) { PL.n = +e.target.value; var w = document.getElementById('esnv'); if (w) w.textContent = PL.n; plSave(); scheduleLive(); }
+  if (d.patc && S.screen === 'estudio') scheduleLive();
+});
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (S.screen === 'estudio' && (b.dataset.tryshape)) { PL.tipo = TRY_TO_PL[b.dataset.tryshape] || 'cil'; plSave(); }
 });
 /* ===================== v11: Maison — orden nuevo, proyectos y marca ===================== */
 var MARK_VASE = 'M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z';
