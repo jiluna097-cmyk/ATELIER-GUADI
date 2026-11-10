@@ -6,6 +6,8 @@
 //   ALLOWED_ORIGIN     (opcional) tu dominio, ej. https://atelier-guadi.netlify.app
 
 const MAX_PROMPT = 20000;
+// Sonnet 5.5 no acepta thinking "disabled": la opción sin razonamiento previo es "between_tools".
+const thinkingFor = (m) => (/^claude-sonnet-5-5/.test(m) ? { thinking: { type: 'between_tools' } } : {});
 const MAX_IMAGE_B64 = 6_000_000; // ~4,5 MB por imagen
 
 export default async (req) => {
@@ -21,7 +23,7 @@ export default async (req) => {
     const t = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5', max_tokens: 400, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: 'Respondé solo: funciona' }] })
+      body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5', max_tokens: 400, ...thinkingFor(process.env.CLAUDE_MODEL || 'claude-sonnet-5-5'), messages: [{ role: 'user', content: 'Respondé solo: funciona' }] })
     });
     const tj = await t.json().catch(() => ({}));
     const ok = t.ok;
@@ -57,7 +59,7 @@ export default async (req) => {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model, max_tokens: 8000, thinking: { type: 'disabled' }, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ model, max_tokens: 8000, ...thinkingFor(model), messages: [{ role: 'user', content }] })
   });
   if (r.status === 429) return new Response(JSON.stringify({ error: 'rate_limited' }), { status: 429, headers });
   if (!r.ok) {
