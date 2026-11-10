@@ -232,6 +232,23 @@ nav{border-top:1px solid var(--line)!important;background:rgba(255,251,245,.96)!
 nav button{font-family:Nunito,sans-serif;font-weight:700;color:var(--muted)!important}
 nav button.on{color:var(--accent)!important}
 .feature img{border-radius:16px}.grp .tag{display:none}
+
+/* plantillas */
+.plgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.plf{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted,#7a6a5e)}
+.plin{display:flex;align-items:center;border:1px solid rgba(0,0,0,.14);border-radius:12px;background:#fff;padding:0 10px}
+.plin input{border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:#2b211b;width:100%;padding:10px 0;min-width:0}
+.plin em{font-style:normal;font-size:12px;opacity:.7}
+.plchk{display:flex;gap:8px;align-items:center;font-size:14px;margin:10px 0}
+.plchk input{width:20px;height:20px;accent-color:#A4502F}
+.plprev{position:relative;background:repeating-conic-gradient(#f3ece4 0 25%,#fbf7f2 0 50%) 0 0/16px 16px;border-radius:16px;padding:12px;display:flex;justify-content:center;min-height:120px}
+.plprev canvas{max-width:100%;box-shadow:0 1px 6px rgba(0,0,0,.12)}
+button.mode{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:12px 14px;border:1px solid rgba(0,0,0,.1);border-radius:14px;background:#fff;font:inherit;color:inherit;width:100%}
+button.mode b{font-size:15px}button.mode span{font-size:13px;opacity:.75}
+button.mode.on{border-color:#A4502F;background:#fbf1ea;box-shadow:inset 0 0 0 1px #A4502F}
+.calbox{display:flex;justify-content:center;padding:24px 0}
+#calcard{border:2px solid #A4502F;border-radius:12px;background:#fbf1ea}
+#calr{width:100%}
 </style>
 </head>
 <body>
@@ -1610,16 +1627,17 @@ function vMia() {
 }
 
 function render() {
-  var v = { home: vHome, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte }[S.screen] || vHome;
+  var v = { home: vHome, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte, plantilla: vPlantilla, calib: vCalib }[S.screen] || vHome;
   var keep = {}, act = document.activeElement && document.activeElement.id;
   ['aiq', 'sq', 'trq'].forEach(function (k) { var el = document.getElementById(k); if (el && el.value) keep[k] = el.value; });
   document.getElementById('main').innerHTML = v();
   Object.keys(keep).forEach(function (k) { var el = document.getElementById(k); if (el && !el.value) el.value = keep[k]; });
   if (act && ['aiq', 'sq', 'trq'].indexOf(act) >= 0) { var fe = document.getElementById(act); if (fe) { fe.focus(); try { fe.setSelectionRange(fe.value.length, fe.value.length); } catch (e) {} } }
-  var tab = { idea: S.from || 'home', pasos: S.from || 'home', list: 'home', ai: 'idear', textura: 'texturas', apps: 'home', buscar: 'home', recorte: 'estudio', calcar: 'estudio', referentes: 'home', proceso: 'home' }[S.screen] || S.screen;
+  var tab = { idea: S.from || 'home', pasos: S.from || 'home', list: 'home', ai: 'idear', textura: 'texturas', apps: 'home', buscar: 'home', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio', referentes: 'home', proceso: 'home' }[S.screen] || S.screen;
   document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-go') === tab); });
   if (S.screen === 'estudio' && typeof drawStage === 'function') { stageGestures(); drawStage(); }
   if (S.screen === 'recorte' && typeof drawCut === 'function') setTimeout(drawCut, 0);
+  if (S.screen === 'plantilla' && typeof drawPlPreview === 'function') setTimeout(drawPlPreview, 0);
 }
 
 document.addEventListener('click', function (e) {
@@ -1763,7 +1781,7 @@ async function trFromAI(word) {
 /* overlay de calco */
 var TRS = { x: 0, y: 0, s: 1, r: 0, op: .55, lock: false, mode: 'luz', inv: false, grid: false, stream: null };
 function openTrace(mode, bgURL) {
-  TRS.mode = mode; TRS.x = 0; TRS.y = 0; TRS.s = 1; TRS.r = 0; TRS.lock = false; TRS.op = mode === 'luz' ? 1 : .55;
+  TRS.mode = mode; TRS.real = false; TRS.x = 0; TRS.y = 0; TRS.s = 1; TRS.r = 0; TRS.lock = false; TRS.op = mode === 'luz' ? 1 : .55;
   var o = document.getElementById('tr');
   o.className = 'tr ' + mode; o.style.display = 'block'; document.body.style.overflow = 'hidden';
   document.getElementById('trbg').innerHTML = mode === 'foto' && bgURL ? '<img src="' + bgURL + '" alt="">' : (mode === 'cam' ? '<video id="trv" autoplay playsinline muted></video>' : '');
@@ -1801,7 +1819,7 @@ function trUI() {
     if (TRS.lock || !pts[e.pointerId]) return; pts[e.pointerId] = { x: e.clientX, y: e.clientY };
     var n = info(); if (!n || !last) { last = n; return; }
     TRS.x += n.x - last.x; TRS.y += n.y - last.y;
-    if (n.n === 2 && last.n === 2) { TRS.s = Math.max(.15, Math.min(8, TRS.s * n.d / (last.d || n.d))); TRS.r += n.r - last.r; }
+    if (n.n === 2 && last.n === 2 && !TRS.real) { TRS.s = Math.max(.15, Math.min(8, TRS.s * n.d / (last.d || n.d))); TRS.r += n.r - last.r; }
     last = n; trApply();
   });
   function up(e) { delete pts[e.pointerId]; last = info(); }
@@ -1831,7 +1849,7 @@ document.addEventListener('click', function (e) {
     case 'tr-inv': TRS.inv = !TRS.inv; return trApply();
     case 'tr-grid': TRS.grid = !TRS.grid; return trUI();
     case 'tr-flip': TRS.fx = -(TRS.fx || 1); return trApply();
-    case 'tr-reset': TRS.x = 0; TRS.y = 0; TRS.s = 1; TRS.r = 0; return trApply();
+    case 'tr-reset': TRS.x = 0; TRS.y = 0; if (!TRS.real) TRS.s = 1; TRS.r = 0; return trApply();
   }
 });
 
@@ -2057,7 +2075,7 @@ function vEstudio() {
     studioBar() +
     '<div class="four tools"><button data-panel="texto"' + (P === 'texto' ? ' class="on"' : '') + '><b>Aa</b>Texto</button><button data-panel="objeto"' + (P === 'objeto' ? ' class="on"' : '') + '>' + I.spark + 'Objeto</button><button data-st="photo">' + I.cam + 'Foto</button><button data-panel="probar"' + (P === 'probar' ? ' class="on"' : '') + '>' + I.cube + 'Probar</button></div>' +
     (ST.err ? '<p class="sm">' + esc(ST.err) + '</p>' : '') + panel +
-    (ST.layers.length ? '<div class="two"><button class="secondary" data-st="tocalcar">Calcar este diseño</button><button class="secondary" data-st="save">' + I.bm(false) + ' Guardar diseño</button></div><button class="link" data-st="clear">Empezar de cero</button>' : '') + '</div>';
+    (ST.layers.length ? '<button class="primary" data-go="plantilla">Plantilla a tamaño real · serigrafía, esténcil, calco</button><div class="two"><button class="secondary" data-st="tocalcar">Calcar este diseño</button><button class="secondary" data-st="save">' + I.bm(false) + ' Guardar diseño</button></div><button class="link" data-st="clear">Empezar de cero</button>' : '') + '</div>';
 }
 
 /* ---------- objeto con Claude ---------- */
@@ -2228,7 +2246,274 @@ document.addEventListener('click', function (e) {
     }
   }
 });
+/* ===================== v10: plantillas a tamaño real ===================== */
+var PL = {
+  tipo: 'cil', uso: 'calcar', mirror: false, base: 'aplicar', shrink: 12,
+  d: 80, h: 95, dTop: 92, dBot: 75, w: 150, hh: 100, dPlato: 200,
+  mt: 8, mb: 8, layout: 'centro', n: 3, size: 70, dy: 0, busy: false, msg: ''
+};
+try { var plSaved = JSON.parse(localStorage.getItem('pl_cfg') || 'null'); if (plSaved) Object.assign(PL, plSaved, { busy: false, msg: '' }); } catch (e) {}
+var PXMM = 3.78; try { var pxs = parseFloat(localStorage.getItem('pxmm')); if (pxs > 1) PXMM = pxs; } catch (e) {}
+function plSave() { try { var c = Object.assign({}, PL); delete c.busy; delete c.msg; localStorage.setItem('pl_cfg', JSON.stringify(c)); } catch (e) {} }
 
+var PL_TIPOS = [['cil', 'Taza o cilindro'], ['cono', 'Vaso cónico'], ['lata', 'Lata'], ['plato', 'Plato'], ['placa', 'Placa plana']];
+var PL_USOS = [
+  ['calcar', 'Guía para calcar', 'Líneas para marcar con birome sin tinta sobre la pieza en cuero.'],
+  ['estencil', 'Esténcil de papel', 'Formas para recortar en papel de diario: tapan la arcilla y el bajo cubierta pinta alrededor.'],
+  ['transfer', 'Calco de bajo cubierta', 'Va espejado: se pinta sobre papel y se apoya boca abajo en la pieza.'],
+  ['positivo', 'Positivo para serigrafía', 'Negro opaco para grabar la pantalla (en una imprenta de serigrafía o con insoladora).']
+];
+
+/* ---------- geometría ---------- */
+function plGeom() {
+  var k = PL.base === 'final' ? 1 / (1 - Math.min(40, Math.max(0, PL.shrink)) / 100) : 1, g = { k: k };
+  var t = PL.tipo;
+  if (t === 'lata' || t === 'cil') {
+    var d = (t === 'lata' ? (PL.dLata || 66) : PL.d) * k, h = (t === 'lata' ? (PL.hLata || 122) : PL.h) * k;
+    g.kind = 'rect'; g.w = Math.PI * d; g.h = h; g.info = 'Desarrollo: ' + fmm(g.w) + ' × ' + fmm(g.h) + ' mm (perímetro de ' + fmm(d) + ' mm de diámetro)';
+  } else if (t === 'placa') {
+    g.kind = 'rect'; g.w = PL.w * k; g.h = PL.hh * k; g.info = 'Placa: ' + fmm(g.w) + ' × ' + fmm(g.h) + ' mm';
+  } else if (t === 'plato') {
+    g.kind = 'circle'; g.w = g.h = PL.dPlato * k; g.info = 'Círculo de ' + fmm(g.w) + ' mm de diámetro';
+  } else {
+    var r1 = PL.dTop / 2 * k, r2 = PL.dBot / 2 * k, H = PL.h * k;
+    if (Math.abs(r1 - r2) < .5) { g.kind = 'rect'; g.w = Math.PI * 2 * r1; g.h = H; g.info = 'Casi cilíndrico: ' + fmm(g.w) + ' × ' + fmm(g.h) + ' mm'; return g; }
+    var big = Math.max(r1, r2), small = Math.min(r1, r2), s = Math.sqrt(H * H + (big - small) * (big - small));
+    g.kind = 'arc'; g.topBig = r1 > r2; g.s = s; g.Rout = s * big / (big - small); g.Rin = g.Rout - s; g.th = 2 * Math.PI * big / g.Rout;
+    g.bandW = g.th * (g.Rout + g.Rin) / 2;
+    g.info = 'Arco: radios ' + fmm(g.Rout) + ' y ' + fmm(g.Rin) + ' mm · ángulo ' + (g.th * 180 / Math.PI).toFixed(1) + '° · lado ' + fmm(s) + ' mm';
+  }
+  return g;
+}
+function fmm(v) { return (Math.round(v * 10) / 10).toString().replace('.', ','); }
+
+/* ---------- diseño (del Estudio) recortado ---------- */
+function designCanvas(px) {
+  if (!ST.layers.length) return null;
+  var c = document.createElement('canvas'); c.width = c.height = px; var g = c.getContext('2d');
+  g.scale(px / SW, px / SW); paintLayers(g, { black: true });
+  var d = g.getImageData(0, 0, px, px).data, x0 = px, y0 = px, x1 = -1, y1 = -1;
+  for (var y = 0; y < px; y += 2) for (var x = 0; x < px; x += 2) if (d[(y * px + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return null;
+  x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(px - 1, x1 + 2); y1 = Math.min(px - 1, y1 + 2);
+  var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+  return o;
+}
+function inkify(src, alpha) {
+  var c = document.createElement('canvas'); c.width = src.width; c.height = src.height; var g = c.getContext('2d');
+  g.drawImage(src, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = 'rgba(0,0,0,' + (alpha || 1) + ')'; g.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
+/* ---------- banda rectangular con el diseño ---------- */
+function paintBand(g, wpx, hpx, ppm, des) {
+  var top = PL.mt * ppm, bot = PL.mb * ppm, ah = Math.max(4, hpx - top - bot);
+  var slot = PL.layout === 'repetir' ? wpx / Math.max(1, PL.n) : (PL.layout === 'patron' ? wpx / 3 : wpx);
+  var dh = ah * PL.size / 100, dw = dh * des.width / des.height;
+  if (dw > slot * .88 * PL.size / 100 / .7 && dw > slot * .88) { var kk = slot * .88 / dw; dw *= kk; dh *= kk; }
+  var cy = top + ah / 2 + (PL.dy / 100) * (ah - dh) / 2;
+  var put = function (cx) { g.drawImage(des, cx - dw / 2, cy - dh / 2, dw, dh); };
+  if (PL.layout === 'centro') put(wpx / 2);
+  else if (PL.layout === 'repetir') { var n = Math.max(1, PL.n); for (var i = 0; i < n; i++) put(wpx * (i + .5) / n); }
+  else { var cols = Math.max(1, Math.round(wpx / (dw * 1.25))), rows = Math.max(1, Math.floor(ah / (dh * 1.15))); for (var r = 0; r < rows; r++) for (var q = 0; q < cols; q++) { var cx = wpx * (q + .5 + (r % 2 ? .5 : 0)) / cols; g.drawImage(des, cx - dw / 2, top + ah * (r + .5) / rows - dh / 2, dw, dh); if (r % 2 && q === cols - 1) g.drawImage(des, cx - wpx - dw / 2, top + ah * (r + .5) / rows - dh / 2, dw, dh); } }
+}
+
+/* ---------- plantilla completa ---------- */
+function renderTemplate(ppm) {
+  var G = plGeom(), des0 = designCanvas(1600);
+  if (!des0) return null;
+  var des = inkify(des0, PL.uso === 'calcar' ? .85 : 1);
+  if (PL.mirror) { var m = document.createElement('canvas'); m.width = des.width; m.height = des.height; var mg = m.getContext('2d'); mg.translate(des.width, 0); mg.scale(-1, 1); mg.drawImage(des, 0, 0); des = m; }
+  var out, og, outline = PL.uso === 'positivo' ? '#9A9A9A' : '#555';
+  if (G.kind === 'rect') {
+    out = document.createElement('canvas'); out.width = Math.round(G.w * ppm); out.height = Math.round(G.h * ppm); og = out.getContext('2d');
+    og.save(); og.beginPath(); og.rect(0, 0, out.width, out.height); og.clip(); paintBand(og, out.width, out.height, ppm, des); og.restore();
+    og.setLineDash([3 * ppm, 2 * ppm]); og.lineWidth = Math.max(1, .3 * ppm); og.strokeStyle = outline; og.strokeRect(.5, .5, out.width - 1, out.height - 1);
+    if (PL.tipo !== 'placa') { og.setLineDash([]); og.beginPath(); og.moveTo(out.width / 2, 0); og.lineTo(out.width / 2, 3 * ppm); og.moveTo(out.width / 2, out.height); og.lineTo(out.width / 2, out.height - 3 * ppm); og.stroke(); }
+    return { canvas: out, wmm: G.w, hmm: G.h, geom: G };
+  }
+  if (G.kind === 'circle') {
+    var D = Math.round(G.w * ppm), R = D / 2; out = document.createElement('canvas'); out.width = out.height = D; og = out.getContext('2d');
+    og.save(); og.beginPath(); og.arc(R, R, R, 0, 7); og.clip();
+    var sz = D * PL.size / 100 * .6, dw = sz * des.width / Math.max(des.width, des.height), dh = sz * des.height / Math.max(des.width, des.height);
+    if (PL.layout === 'centro') og.drawImage(des, R - dw / 2, R - dh / 2 + PL.dy / 100 * R * .5, dw, dh);
+    else if (PL.layout === 'repetir') { var n = Math.max(1, PL.n), rr = R - Math.max(dw, dh) / 2 - PL.mt * ppm; for (var i = 0; i < n; i++) { og.save(); og.translate(R, R); og.rotate(i * 2 * Math.PI / n); og.drawImage(des, -dw / 2, -rr - dh / 2, dw, dh); og.restore(); } }
+    else { var step = Math.max(dw, dh) * 1.25; for (var y = -step; y < D + step; y += step) for (var x = -step; x < D + step; x += step) og.drawImage(des, x + ((y / step) % 2 ? step / 2 : 0) - dw / 2, y - dh / 2, dw, dh); }
+    og.restore();
+    og.setLineDash([3 * ppm, 2 * ppm]); og.lineWidth = Math.max(1, .3 * ppm); og.strokeStyle = outline; og.beginPath(); og.arc(R, R, R - 1, 0, 7); og.stroke();
+    og.setLineDash([]); og.beginPath(); og.moveTo(R - 3 * ppm, R); og.lineTo(R + 3 * ppm, R); og.moveTo(R, R - 3 * ppm); og.lineTo(R, R + 3 * ppm); og.stroke();
+    return { canvas: out, wmm: G.w, hmm: G.h, geom: G };
+  }
+  /* arco (vaso cónico): se arma la banda y se curva columna por columna */
+  var bw = Math.max(2, Math.round(G.bandW * ppm)), bh = Math.max(2, Math.round(G.s * ppm));
+  var band = document.createElement('canvas'); band.width = bw; band.height = bh; paintBand(band.getContext('2d'), bw, bh, ppm, des);
+  var Ro = G.Rout * ppm, Ri = G.Rin * ppm, th = G.th, pts = [];
+  for (var a = 0; a <= 64; a++) { var f = -th / 2 + th * a / 64; pts.push([Math.sin(f) * Ro, Math.cos(f) * Ro], [Math.sin(f) * Ri, Math.cos(f) * Ri]); }
+  var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
+  var minx = Math.min.apply(null, xs), maxx = Math.max.apply(null, xs), miny = Math.min.apply(null, ys), maxy = Math.max.apply(null, ys);
+  var W = Math.ceil(maxx - minx) + 4, H = Math.ceil(maxy - miny) + 4;
+  out = document.createElement('canvas'); out.width = W; out.height = H; og = out.getContext('2d');
+  var cx = -minx + 2, cy, sign;
+  if (G.topBig) { cy = maxy + 2; sign = -1; } else { cy = -miny + 2; sign = 1; }
+  var colW = 2, over = Ro / ((Ro + Ri) / 2) * colW + 1;
+  for (var xb = 0; xb < bw; xb += colW) {
+    var phi = (xb / bw - .5) * th;
+    og.save(); og.translate(cx, cy); og.rotate(sign === -1 ? phi : -phi);
+    if (sign === -1) og.drawImage(band, xb, 0, colW, bh, -over / 2, -Ro, over, Ro - Ri);
+    else og.drawImage(band, xb, 0, colW, bh, -over / 2, Ri, over, Ro - Ri);
+    og.restore();
+  }
+  og.setLineDash([3 * ppm, 2 * ppm]); og.lineWidth = Math.max(1, .3 * ppm); og.strokeStyle = outline; og.beginPath();
+  var P = function (R, f) { return [cx + Math.sin(f) * R, cy + sign * Math.cos(f) * R]; };
+  var p0 = P(Ro, -th / 2); og.moveTo(p0[0], p0[1]);
+  for (a = 0; a <= 96; a++) { var q = P(Ro, -th / 2 + th * a / 96); og.lineTo(q[0], q[1]); }
+  for (a = 96; a >= 0; a--) { q = P(Ri, -th / 2 + th * a / 96); og.lineTo(q[0], q[1]); }
+  og.closePath(); og.stroke();
+  return { canvas: out, wmm: W / ppm, hmm: H / ppm, geom: G };
+}
+
+/* ---------- exportar ---------- */
+async function saveFile(blob, name) {
+  var dl = window.claude && window.claude.use ? await claude.use('downloads') : null;
+  if (dl) { await dl.save({ filename: name, data: blob }); return; }
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+function loadJsPDF() {
+  if (window.jspdf) return Promise.resolve(window.jspdf.jsPDF);
+  return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = window.__JSPDF_SRC || 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload = function () { res(window.jspdf.jsPDF); }; s.onerror = rej; document.head.appendChild(s); });
+}
+function plTitle() { var t = PL_TIPOS.find(function (x) { return x[0] === PL.tipo; }), u = PL_USOS.find(function (x) { return x[0] === PL.uso; }); return (t ? t[1] : '') + ' · ' + (u ? u[1] : ''); }
+async function exportPDF() {
+  var J = await loadJsPDF(), ppm = 11.811, T = renderTemplate(ppm); if (!T) return;
+  var pageW = 210, pageH = 297, mg = 12, aw = pageW - 2 * mg, ah = pageH - 2 * mg - 14, ov = 10;
+  var tiles = function (pw, ph) { var c = T.wmm <= pw ? 1 : Math.ceil((T.wmm - ov) / (pw - ov)), r = T.hmm <= ph ? 1 : Math.ceil((T.hmm - ov) / (ph - ov)); return [c, r]; };
+  var tp = tiles(aw, ah), tl = tiles(pageH - 2 * mg, pageW - 2 * mg - 14), portrait = tp[0] * tp[1] <= tl[0] * tl[1];
+  var pw = portrait ? aw : pageH - 2 * mg, ph = portrait ? ah : pageW - 2 * mg - 14, cols = portrait ? tp[0] : tl[0], rows = portrait ? tp[1] : tl[1], total = cols * rows;
+  var doc = new J({ unit: 'mm', format: 'a4', orientation: portrait ? 'portrait' : 'landscape' }), PW = portrait ? pageW : pageH, PH = portrait ? pageH : pageW;
+  var n = 0;
+  for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+    if (n++) doc.addPage('a4', portrait ? 'portrait' : 'landscape');
+    var x0 = c * (pw - ov), y0 = r * (ph - ov), tw = Math.min(pw, T.wmm - x0), th = Math.min(ph, T.hmm - y0);
+    var cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(tw * ppm)); cv.height = Math.max(1, Math.round(th * ppm));
+    var cg = cv.getContext('2d'); cg.fillStyle = '#FFFFFF'; cg.fillRect(0, 0, cv.width, cv.height); cg.drawImage(T.canvas, -x0 * ppm, -y0 * ppm);
+    doc.addImage(cv.toDataURL('image/png'), 'PNG', mg, mg + 8, tw, th);
+    doc.setFontSize(9); doc.setTextColor(60);
+    doc.text('Atelier Guadi · ' + plTitle() + (PL.mirror ? ' · ESPEJADO' : ''), mg, mg + 3);
+    doc.text('Tamaño real: ' + fmm(T.wmm) + ' × ' + fmm(T.hmm) + ' mm' + (total > 1 ? ' · Hoja ' + n + ' de ' + total + ' (fila ' + (r + 1) + ', columna ' + (c + 1) + ') · las hojas se superponen ' + ov + ' mm' : ''), mg, mg + 7);
+    var ry = PH - mg - 2; doc.setDrawColor(0); doc.setLineWidth(.3); doc.line(mg, ry, mg + 50, ry);
+    for (var t = 0; t <= 50; t += 10) doc.line(mg + t, ry - (t % 50 ? 1.5 : 3), mg + t, ry);
+    doc.text('Esta regla mide 5 cm. Si no, imprimí al 100 % ("tamaño real", sin ajustar a la página).', mg + 54, ry);
+    if (total > 1) { doc.setDrawColor(150); [[mg, mg + 8], [mg + tw, mg + 8], [mg, mg + 8 + th], [mg + tw, mg + 8 + th]].forEach(function (p) { doc.line(p[0] - 3, p[1], p[0] + 3, p[1]); doc.line(p[0], p[1] - 3, p[0], p[1] + 3); }); }
+  }
+  await saveFile(doc.output('blob'), 'plantilla-' + PL.tipo + '-' + PL.uso + '.pdf');
+}
+async function exportSVG() {
+  var T = renderTemplate(11.811); if (!T) return;
+  var w = T.wmm.toFixed(2), h = T.hmm.toFixed(2);
+  var svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + w + 'mm" height="' + h + 'mm" viewBox="0 0 ' + w + ' ' + h + '">\n<title>Atelier Guadi · ' + plTitle() + '</title>\n<image x="0" y="0" width="' + w + '" height="' + h + '" xlink:href="' + T.canvas.toDataURL('image/png') + '"/>\n</svg>\n';
+  await saveFile(new Blob([svg], { type: 'image/svg+xml' }), 'plantilla-' + PL.tipo + '-' + PL.uso + '.svg');
+}
+function openRealSize() {
+  var T = renderTemplate(6); if (!T) return;
+  var c = document.createElement('canvas'); c.width = T.canvas.width; c.height = T.canvas.height; var g = c.getContext('2d'); g.drawImage(T.canvas, 0, 0);
+  TRC.src = c.toDataURL('image/png'); TRC.name = 'Plantilla';
+  openTrace('luz');
+  var im = document.getElementById('trimg'), base = .8 * Math.min(window.innerWidth, window.innerHeight);
+  TRS.real = true; TRS.s = (T.wmm * PXMM) / base; TRS.op = 1; trApply();
+  document.getElementById('trmsg').textContent = 'Tamaño real (' + fmm(T.wmm) + ' × ' + fmm(T.hmm) + ' mm). Arrastrá para ver cada parte.';
+}
+
+/* ---------- vista ---------- */
+function plField(id, label, val, unit, min, max, step) {
+  return '<label class="plf"><span>' + label + '</span><span class="plin"><input type="number" inputmode="decimal" data-pl="' + id + '" value="' + val + '" min="' + (min || 0) + '" max="' + (max || 2000) + '" step="' + (step || 1) + '"><em>' + unit + '</em></span></label>';
+}
+function vPlantilla() {
+  var G = plGeom(), t = PL.tipo, fields = '';
+  if (t === 'cil') fields = plField('d', 'Diámetro', PL.d, 'mm') + plField('h', 'Alto', PL.h, 'mm');
+  if (t === 'lata') fields = plField('dLata', 'Diámetro', PL.dLata || 66, 'mm') + plField('hLata', 'Alto', PL.hLata || 122, 'mm');
+  if (t === 'cono') fields = plField('dTop', 'Diámetro arriba', PL.dTop, 'mm') + plField('dBot', 'Diámetro abajo', PL.dBot, 'mm') + plField('h', 'Alto', PL.h, 'mm');
+  if (t === 'plato') fields = plField('dPlato', 'Diámetro a decorar', PL.dPlato, 'mm');
+  if (t === 'placa') fields = plField('w', 'Ancho', PL.w, 'mm') + plField('hh', 'Alto', PL.hh, 'mm');
+  var hasDesign = ST.layers.length > 0;
+  return '<div class="pad"><div class="row"><button class="round bordered" data-go="estudio" aria-label="Volver al Estudio">' + I.back + '</button><span class="eyebrow" style="margin:0">Estudio</span></div>' +
+    '<h1>Plantilla a tamaño real</h1><p class="muted sm">Para calcar, recortar un esténcil, hacer un calco de bajo cubierta o grabar una pantalla de serigrafía. Se imprime en A4 al tamaño exacto de la pieza.</p>' +
+    (hasDesign ? '' : '<div class="note"><span>Primero armá un diseño en el Estudio (texto, dibujos o una foto recortada).</span><button class="primary" data-go="estudio" style="margin-top:8px">Ir al Estudio</button></div>') +
+    '<span class="eyebrow">1 · La pieza</span><div class="chips tight">' + PL_TIPOS.map(function (x) { return '<button class="chip' + (PL.tipo === x[0] ? ' on' : '') + '" data-pltipo="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="plgrid">' + fields + '</div>' +
+    '<div class="two"><button class="secondary' + (PL.base === 'aplicar' ? ' on' : '') + '" data-plbase="aplicar">Medidas de la pieza ahora</button><button class="secondary' + (PL.base === 'final' ? ' on' : '') + '" data-plbase="final">Medidas finales</button></div>' +
+    (PL.base === 'final' ? '<div class="plgrid">' + plField('shrink', 'Contracción que falta', PL.shrink, '%', 0, 30, .5) + '</div><p class="muted xs">Si la aplicás en cuero, va la contracción total de la arcilla; si es sobre bizcocho, solo la de la última cocción. Pedile el dato a la profe.</p>' : '<p class="muted xs">Medí la pieza en el momento en que vas a aplicar la plantilla: así calza justo.</p>') +
+    '<span class="eyebrow">2 · Para qué la querés</span><div class="list tight">' + PL_USOS.map(function (u) { return '<button class="mode' + (PL.uso === u[0] ? ' on' : '') + '" data-pluso="' + u[0] + '"><b>' + u[1] + '</b><span>' + u[2] + '</span></button>'; }).join('') + '</div>' +
+    '<label class="plchk"><input type="checkbox" data-plmirror="1"' + (PL.mirror ? ' checked' : '') + '> Espejar el diseño ' + (PL.uso === 'transfer' ? '(necesario para el calco)' : '') + '</label>' +
+    '<span class="eyebrow">3 · Cómo va el diseño</span><div class="chips tight">' + [['centro', 'Uno al frente'], ['repetir', 'Repetido alrededor'], ['patron', 'Patrón continuo']].map(function (x) { return '<button class="chip' + (PL.layout === x[0] ? ' on' : '') + '" data-pllayout="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="plgrid">' + (PL.layout === 'repetir' ? plField('n', 'Cantidad', PL.n, 'veces', 1, 24) : '') + plField('size', 'Tamaño del diseño', PL.size, '%', 5, 100) + (t !== 'plato' ? plField('mt', 'Margen arriba', PL.mt, 'mm', 0, 100) + plField('mb', 'Margen abajo', PL.mb, 'mm', 0, 100) : '') + '</div>' +
+    '<label class="sm">Posición vertical <input type="range" min="-100" max="100" value="' + PL.dy + '" data-plrange="dy"></label>' +
+    '<span class="eyebrow">4 · Vista previa</span><div class="plprev"><canvas id="plc"></canvas>' + (hasDesign ? '' : '<div class="stagehint">Sin diseño todavía</div>') + '</div>' +
+    '<p class="sm"><b>' + esc(G.info) + '</b>' + (G.k !== 1 ? '<br><span class="muted">Agrandado ' + Math.round((G.k - 1) * 1000) / 10 + ' % por la contracción.</span>' : '') + '</p>' +
+    (PL.msg ? '<p class="sm">' + esc(PL.msg) + '</p>' : '') +
+    '<div class="two"><button class="primary" data-plx="pdf"' + (hasDesign && !PL.busy ? '' : ' disabled') + '>' + (PL.busy ? 'Preparando…' : 'PDF tamaño real') + '</button><button class="secondary" data-plx="svg"' + (hasDesign ? '' : ' disabled') + '>SVG (mm)</button></div>' +
+    '<button class="secondary" data-plx="real"' + (hasDesign ? '' : ' disabled') + '>Ver en pantalla a tamaño real</button>' +
+    '<button class="link" data-plx="calib">Calibrar la pantalla con una tarjeta</button>' +
+    '<p class="muted xs">Imprimí siempre al 100 % (“tamaño real”), sin “ajustar a la página”. Cada hoja trae una regla de 5 cm para comprobarlo. Si la plantilla no entra en una hoja, sale dividida en varias que se superponen 1 cm.</p>' +
+    plGuide() + '</div>';
+}
+var PLG = [
+  { t: 'Calcar sobre la pieza', p: ['Imprimí la guía y recortala con 1 cm de margen.', 'Con la pieza en cuero, envolvela con la plantilla (en tazas, la junta va atrás, donde va el asa) y sujetala con cinta de papel.', 'Repasá las líneas con una birome sin tinta o un estique fino: queda la marca hundida.', 'Después hacé sgraffito, mishima o pintá con bajo cubierta siguiendo la marca.'] },
+  { t: 'Esténcil de papel (reserva)', p: ['Imprimí, apoyá papel de diario encima y recortá las formas con un cúter.', 'La pieza tiene que estar en cuero firme: si está muy húmeda, el bajo cubierta tarda mucho en secar entre capas.', 'Humedecé el papel y apoyalo bien pegado; pintá bajo cubierta encima y alrededor.', 'Cuando pierda el brillo, levantá el papel con una punta: queda la forma en el color de la arcilla.', 'Ojo con letras como la “O” o la “A”: el centro se cae; dejale puentes o ponelo aparte.'] },
+  { t: 'Calco de bajo cubierta (transfer)', p: ['Imprimí la plantilla espejada y apoyá encima papel de diario o papel de seda (si tenés mesa de luz o la pantalla en modo calco, mejor).', 'Repasá el dibujo con bajo cubierta (pincel o perilla) y dejalo secar. Se pueden sumar capas de color: primero los detalles, después el fondo.', 'Pasá una capa fina de barbotina sobre el papel y sobre la pieza en cuero. Cuando ninguna de las dos brille, apoyá el papel boca abajo.', 'Frotá el dorso con una costilla blanda y después con una más firme; levantá el papel y aparece el dibujo al derecho.'] },
+  { t: 'Serigrafía (pantalla)', p: ['Descargá el positivo en PDF o SVG. Una imprenta de serigrafía (las de remeras sirven) puede grabar la pantalla con tu archivo.', 'Para engobes y bajo cubierta se usan mallas de alrededor de 110 hilos; las líneas muy finas pueden no salir, así que mejor trazos firmes.', 'Se puede imprimir directo sobre la pieza en cuero o sobre bizcocho, o sobre papel de diario para hacer calcos (en ese caso, espejá el positivo).', 'El bajo cubierta para serigrafía se espesa con un medio de serigrafía; preguntale a la profe cuál hay en el taller.'] }
+];
+var PLSRC = [
+  ['The Ceramic Shop — serigrafías para arcilla (malla 110, cuero o bizcocho)', 'https://www.theceramicshop.com/product/42875/geometric-squares-silkscreen-s/'],
+  ['Mayco — calcos de serigrafía sobre arcilla en cuero', 'https://www.maycocolors.com/?p=9525'],
+  ['Ceramic Arts Network — esténcil y transferencia con papel de diario', 'https://ceramicartsnetwork.org/daily/article/How-to-Combine-Stencils-with-Slip-Transfer-for-a-Great-Surface-Effect'],
+  ['Ceramic Arts Network — dibujar y transferir (plantilla espejada)', 'https://ceramicartsnetwork.org/pottery-making-illustrated/pottery-making-illustrated-article/Drawn-and-Transferred'],
+  ['Digitalfire — serigrafía en cerámica', 'https://digitalfire.com/glossary/81'],
+  ['Made Good Designs — por qué un vaso cónico se desarrolla en arco', 'https://madegooddesigns.com/tools/mug-template/']
+];
+function plGuide() {
+  return '<span class="eyebrow">Cómo pasarla a la pieza</span><div class="list tight">' + PLG.map(function (m, i) {
+    var open = S.plg === i;
+    return '<div class="acc"><button class="acch" data-plg="' + i + '"><span class="anum">' + (i + 1) + '</span><span class="abody"><span class="at">' + m.t + '</span></span><span class="sign">' + (open ? '−' : '+') + '</span></button>' +
+      (open ? '<ol class="olist" style="padding:0 16px 16px 40px">' + m.p.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>' : '') + '</div>';
+  }).join('') + '</div><div class="srcbox"><span class="eyebrow">Fuentes</span>' + PLSRC.map(function (s) { return '<a class="src" href="' + s[1] + '" target="_blank" rel="noopener">' + I.ext + '<span>' + esc(s[0]) + '</span></a>'; }).join('') + '</div>';
+}
+function drawPlPreview() {
+  var c = document.getElementById('plc'); if (!c) return;
+  var T = renderTemplate(3); var wrap = c.parentNode, W = wrap.clientWidth - 24;
+  if (!T) { c.width = W; c.height = 160; return; }
+  var sc = Math.min(W / T.canvas.width, 420 / T.canvas.height, 1.5);
+  c.width = Math.round(T.canvas.width * sc); c.height = Math.round(T.canvas.height * sc);
+  var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(T.canvas, 0, 0, c.width, c.height);
+}
+function vCalib() {
+  var w = 85.6 * PXMM, h = 53.98 * PXMM;
+  return '<div class="pad"><div class="row"><button class="round bordered" data-go="plantilla" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Calibrar pantalla</span></div>' +
+    '<h1>Tamaño real en tu pantalla</h1><p class="muted sm">Apoyá una tarjeta (de crédito, débito o SUBE) sobre el rectángulo y mové la barra hasta que coincidan los bordes. Así “Ver a tamaño real” muestra los milímetros exactos.</p>' +
+    '<div class="calbox"><div id="calcard" style="width:' + w + 'px;height:' + h + 'px"></div></div>' +
+    '<input type="range" id="calr" min="2.5" max="9" step="0.01" value="' + PXMM + '"><p class="sm" id="calv">' + PXMM.toFixed(2) + ' píxeles por milímetro</p>' +
+    '<button class="primary" data-go="plantilla">Listo</button></div>';
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('input', function (e) {
+  var t = e.target, d = t.dataset || {};
+  if (d.pl) { var v = parseFloat(String(t.value).replace(',', '.')); if (!isNaN(v)) { PL[d.pl] = v; plSave(); clearTimeout(PL.t); PL.t = setTimeout(function () { drawPlPreview(); var inf = document.querySelector('.plprev + p b'); if (inf) inf.textContent = plGeom().info; }, 150); } }
+  if (d.plrange) { PL[d.plrange] = +t.value; plSave(); clearTimeout(PL.t); PL.t = setTimeout(drawPlPreview, 80); }
+  if (t.id === 'calr') { PXMM = +t.value; try { localStorage.setItem('pxmm', PXMM); } catch (er) {} var cc = document.getElementById('calcard'); if (cc) { cc.style.width = 85.6 * PXMM + 'px'; cc.style.height = 53.98 * PXMM + 'px'; } var cv = document.getElementById('calv'); if (cv) cv.textContent = PXMM.toFixed(2) + ' píxeles por milímetro'; }
+});
+document.addEventListener('change', function (e) { if (e.target.dataset && e.target.dataset.plmirror) { PL.mirror = e.target.checked; plSave(); drawPlPreview(); } });
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return; var d = b.dataset;
+  if (d.pltipo) { PL.tipo = d.pltipo; plSave(); return render(); }
+  if (d.plbase) { PL.base = d.plbase; plSave(); return render(); }
+  if (d.pluso) { PL.uso = d.pluso; PL.mirror = d.pluso === 'transfer'; plSave(); return render(); }
+  if (d.pllayout) { PL.layout = d.pllayout; plSave(); return render(); }
+  if (d.plg) { S.plg = S.plg === +d.plg ? -1 : +d.plg; return render(); }
+  if (d.plx === 'pdf') { PL.busy = true; PL.msg = ''; render(); exportPDF().catch(function (er) { PL.msg = er && er.code === 'declined' ? '' : 'No se pudo generar el PDF. Probá de nuevo.'; }).then(function () { PL.busy = false; render(); }); return; }
+  if (d.plx === 'svg') { exportSVG().catch(function (er) { if (!(er && er.code === 'declined')) { PL.msg = 'No se pudo descargar el SVG.'; render(); } }); return; }
+  if (d.plx === 'real') return openRealSize();
+  if (d.plx === 'calib') return set({ screen: 'calib' });
+});
 </script>
 </body>
 </html>
