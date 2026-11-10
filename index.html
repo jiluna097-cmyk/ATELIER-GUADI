@@ -325,6 +325,7 @@ button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 
 .lbx{position:absolute;top:12px;right:12px}
 .lbcap{display:flex;flex-direction:column;align-items:center;gap:10px;color:#EDE5D9;font-size:13px;text-align:center}
 .lbcap .lbtn{background:#F7F2EA;color:#171412}
+.artgrid.two{grid-template-columns:1fr 1fr}.artbtn.big img{width:100%;height:auto;aspect-ratio:1}
 /* navegación */
 nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
@@ -1850,8 +1851,7 @@ function vCalcar() {
     '<span class="eyebrow">1 · Elegí el dibujo</span><button class="secondary" data-go="estudio">' + I.spark + ' Crear un diseño propio en el Estudio</button>' +
     '<div class="artgrid">' + lib + '</div>' +
     '<div class="two"><button class="secondary" data-act="tr-photo">' + I.cam + ' Desde una foto</button>' +
-    (S.aiOk ? '<button class="secondary" data-act="tr-ai">' + I.spark + ' Pedile a Claude</button>' : '<span></span>') + '</div>' +
-    (S.aiOk ? '<input id="trq" class="tinput" placeholder="Ej: una golondrina, un cardón, la cordillera" value="">' : '') +
+    '<button class="secondary" data-motgo="calcar">' + I.spark + ' Buscar o pedir un dibujo</button></div>' +
     (TRC.busy ? '<p class="sm">Preparando el dibujo…</p>' : '') + (TRC.err ? '<p class="sm">' + esc(TRC.err) + '</p>' : '') +
     (TRC.src ? '<span class="eyebrow">2 · Tu dibujo</span><div class="trprev"><img src="' + TRC.src + '" alt="Dibujo elegido"></div>' + photoCtl +
       '<span class="eyebrow">3 · Elegí cómo calcar</span>' +
@@ -2182,7 +2182,7 @@ function vEstudio() {
     '<label class="sm">Curvar el texto <input id="tcurve" type="range" min="-100" max="100" value="' + ST.curve + '"></label>' +
     '<button class="primary" data-st="addtext">Agregar texto</button></div>';
   if (P === 'objeto') panel = '<div class="spanel"><span class="eyebrow">Agregar un dibujo</span><div class="artgrid">' + LINEART.map(function (l) { return '<button class="artbtn" data-addart="' + l[0] + '"><img src="' + svgURL(lineArt(l[0])) + '" alt=""><span>' + l[1] + '</span></button>'; }).join('') + '</div>' +
-    (S.aiOk ? '<span class="eyebrow">O pedíselo a Claude</span><input id="objq" class="tinput" placeholder="Ej: un colibrí, una rama de olivo, un sol con cara"><button class="primary" data-st="aiobj"' + (ST.busy ? ' disabled' : '') + '>' + I.spark + (ST.busy ? ' Dibujando…' : ' Dibujar con Claude') + '</button>' : '') + '</div>';
+    '<span class="eyebrow">Más dibujos</span><button class="primary" data-motgo="estudio">' + I.spark + ' Buscar o pedir un dibujo</button>' + '</div>';
   if (P === 'probar') panel = '<div class="spanel"><span class="eyebrow">Elegí la pieza</span><div class="trygrid">' + TRY.map(function (t) { return '<button class="trybtn' + (ST.tryShape === t[0] ? ' on' : '') + '" data-tryshape="' + t[0] + '">' + art({ id: '_', shape: t[0] === 'jarron' ? 'jarron' : t[0], glaze: '#CFC2B2' }, 48) + '<span>' + t[1] + '</span></button>'; }).join('') + '</div>' +
     '<span class="eyebrow">Color del esmalte</span><div class="inks">' + GLAZES.map(function (c) { return '<button class="dot' + (ST.tryGlaze === c ? ' on' : '') + '" data-tryglaze="' + c + '" style="background:' + c + '" aria-label="Esmalte ' + c + '"></button>'; }).join('') + '</div>' +
     '<button class="primary" data-st="try3d">' + I.cube + ' Ver la pieza en 3D</button></div>';
@@ -2730,6 +2730,16 @@ function maskArray() {
 function cutLines() {
   var w = CUT.w, h = CUT.h, n = w * h, out = new Float32Array(n), m = CUT.hasMask ? maskArray() : null;
   var lw = CUT.grosor * Math.max(1, Math.max(w, h) / 700);
+  if (CUT.style === 'relleno') {
+    var gb = gblur(CUT.gray, w, h, 1.2), hist = new Float64Array(256), cnt = 0;
+    for (var ii = 0; ii < n; ii++) if (!m || m[ii] > .5) { hist[Math.min(255, Math.round(gb[ii] * 255))]++; cnt++; }
+    var sum = 0; for (var t0 = 0; t0 < 256; t0++) sum += t0 * hist[t0];
+    var sB = 0, wB = 0, best = 0, thr = 128; for (t0 = 0; t0 < 256; t0++) { wB += hist[t0]; if (!wB) continue; var wF = cnt - wB; if (!wF) break; sB += t0 * hist[t0]; var mB = sB / wB, mF = (sum - sB) / wF, bt = wB * wF * (mB - mF) * (mB - mF); if (bt > best) { best = bt; thr = t0; } }
+    var th = (thr + (CUT.det - 50) * .9) / 255, fb = new Float32Array(n);
+    for (ii = 0; ii < n; ii++) fb[ii] = (gb[ii] < th && (!m || m[ii] > .5)) ? 1 : 0;
+    fb = gblur(fb, w, h, 1.1);
+    for (ii = 0; ii < n; ii++) out[ii] = Math.max(0, Math.min(1, (fb[ii] - .35) * 3.3));
+  } else {
   if (m && CUT.style !== 'detalles') {
     var mb = gblur(m, w, h, 2.2);
     for (var y = 1; y < h - 1; y++) for (var x = 1; x < w - 1; x++) {
@@ -2757,6 +2767,7 @@ function cutLines() {
     fl = gblur(fl, w, h, .6);
     for (i = 0; i < n; i++) { var v = Math.min(1, fl[i] * 1.8); if (v > out[i]) out[i] = v; }
   }
+  }
   var c = document.createElement('canvas'); c.width = w; c.height = h; var cg = c.getContext('2d'), id = cg.createImageData(w, h);
   for (i = 0; i < n; i++) { var al = out[i] < .12 ? 0 : out[i]; id.data[i * 4 + 3] = Math.round(al * 255); }
   cg.putImageData(id, 0, 0); return c;
@@ -2774,9 +2785,9 @@ function drawCut() {
   c.width = CUT.w; c.height = CUT.h; var g = c.getContext('2d');
   if (CUT.view === 'foto') {
     g.drawImage(CUT.img, 0, 0);
-    if (CUT.hasMask) {
+    if (CUT.hasMask || CUT.style !== 'contorno') {
       var t = document.createElement('canvas'); t.width = CUT.w; t.height = CUT.h; var tg = t.getContext('2d');
-      tg.fillStyle = 'rgba(244,239,232,.82)'; tg.fillRect(0, 0, CUT.w, CUT.h); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(CUT.mask, 0, 0);
+      tg.fillStyle = 'rgba(244,239,232,' + (CUT.hasMask ? .82 : .55) + ')'; tg.fillRect(0, 0, CUT.w, CUT.h); if (CUT.hasMask) { tg.globalCompositeOperation = 'destination-out'; tg.drawImage(CUT.mask, 0, 0); }
       g.drawImage(t, 0, 0);
       var o = document.createElement('canvas'); o.width = CUT.w; o.height = CUT.h; var og = o.getContext('2d');
       og.drawImage(cutResult(), 0, 0); og.globalCompositeOperation = 'source-in'; og.fillStyle = '#A4573A'; og.fillRect(0, 0, CUT.w, CUT.h);
@@ -2819,7 +2830,7 @@ function drawCut() {
 function vRecorte() {
   var chips = ['Solo el perro', 'Las personas', 'La flor', 'La cara'].map(function (p) { return '<button class="chip" data-cxq="' + p + '">' + p + '</button>'; }).join('');
   var tools = [['caja', 'Marcar objeto'], ['sumar', 'Sumar'], ['quitar', 'Quitar']].map(function (t) { return '<button class="' + (CUT.tool === t[0] ? 'on' : '') + '" data-cxt="' + t[0] + '">' + t[1] + '</button>'; }).join('');
-  var styles = [['contorno', 'Contorno'], ['ambos', 'Contorno + detalles'], ['detalles', 'Solo detalles']].map(function (t) { return '<button class="' + (CUT.style === t[0] ? 'on' : '') + '" data-cxs="' + t[0] + '">' + t[1] + '</button>'; }).join('');
+  var styles = [['contorno', 'Contorno'], ['ambos', 'Contorno + detalles'], ['detalles', 'Solo líneas'], ['relleno', 'Relleno']].map(function (t) { return '<button class="' + (CUT.style === t[0] ? 'on' : '') + '" data-cxs="' + t[0] + '">' + t[1] + '</button>'; }).join('');
   var hint = CUT.tool === 'caja' ? 'Arrastrá un rectángulo alrededor del objeto: lo detecto y lo recorto.' : (CUT.tool === 'sumar' ? 'Pintá con el dedo lo que falte del objeto.' : 'Pintá con el dedo lo que sobra.');
   return '<div class="pad"><div class="row"><button class="round bordered" data-go="' + (CUT.target === 'calcar' ? 'calcar' : 'estudio') + '" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Foto a dibujo</span></div>' +
     '<h1>Recortar y <em>dibujar</em></h1>' +
@@ -2830,8 +2841,8 @@ function vRecorte() {
     (CUT.names.length ? '<p class="sm">Encontré: <b>' + esc(CUT.names.join(', ')) + '</b></p>' : '') + (CUT.err ? '<p class="sm">' + esc(CUT.err) + '</p>' : '') +
     '<div class="seg two-v"><button class="' + (CUT.view === 'foto' ? 'on' : '') + '" data-cxv="foto">Sobre la foto</button><button class="' + (CUT.view === 'dibujo' ? 'on' : '') + '" data-cxv="dibujo">Solo el dibujo</button></div>' +
     '<span class="eyebrow">Líneas</span><div class="seg">' + styles + '</div>' +
-    (CUT.style !== 'contorno' ? '<label class="sm">Cantidad de detalle <input type="range" min="0" max="100" value="' + CUT.det + '" data-cxr="det"></label>' : '') +
-    '<label class="sm">Grosor de línea <input type="range" min="1" max="8" step=".5" value="' + CUT.grosor + '" data-cxr="grosor"></label>' +
+    (CUT.style !== 'contorno' ? '<label class="sm">' + (CUT.style === 'relleno' ? 'Cuánto rellena' : 'Cantidad de detalle') + ' <input type="range" min="0" max="100" value="' + CUT.det + '" data-cxr="det"></label>' : '') +
+    (CUT.style === 'relleno' ? '' : '<label class="sm">Grosor de línea <input type="range" min="1" max="8" step=".5" value="' + CUT.grosor + '" data-cxr="grosor"></label>') +
     '<div class="two"><button class="secondary" data-cx="clear">Empezar de nuevo</button><button class="secondary" data-cx="all">Toda la foto</button></div>' +
     '<button class="primary" data-cx="use">' + (CUT.target === 'calcar' ? 'Usar para calcar' : 'Agregar al diseño') + '</button></div>';
 }
@@ -3220,6 +3231,116 @@ document.addEventListener('click', function (e) {
 });
 /* al crear ideas con Claude, buscar la foto de cada una en segundo plano */
 async function prefetchFotos(items) { if (!window.__STANDALONE) return; for (var k = 0; k < items.length; k++) { await realPhotos(items[k]); } }
+/* ===================== v13: dibujos — biblioteca de motivos + Claude con revisión ===================== */
+var MOT = { list: null, loading: false, q: '', res: [], ai: [], busy: false, err: '', style: 'linea', target: 'calcar', step: '' };
+var ES_EN_MOT = { flor: 'flower', flores: 'flower', hoja: 'leaf', hojas: 'leaf', planta: 'plant', arbol: 'tree', 'árbol': 'tree', cactus: 'cactus', cardon: 'cactus', 'cardón': 'cactus', rama: 'plant', pajaro: 'bird', 'pájaro': 'bird', golondrina: 'bird', colibri: 'bird', 'colibrí': 'bird', ave: 'bird', paloma: 'bird', gato: 'cat', perro: 'dog', pez: 'fish', peces: 'fish', mariposa: 'butterfly', abeja: 'bug', insecto: 'bug', caballo: 'horse', conejo: 'rabbit', oso: 'teddy', pato: 'bird', vaca: 'cow', sol: 'sun', luna: 'moon', estrella: 'star', estrellas: 'star', nube: 'cloud', lluvia: 'rain', rayo: 'lightning', arcoiris: 'rainbow', 'arcoíris': 'rainbow', ola: 'wave', olas: 'wave', mar: 'wave', agua: 'drop', gota: 'drop', fuego: 'fire', montana: 'mountains', 'montaña': 'mountains', cordillera: 'mountains', corazon: 'heart', 'corazón': 'heart', ojo: 'eye', mano: 'hand', cara: 'smiley', sonrisa: 'smiley', casa: 'house', taza: 'coffee', cafe: 'coffee', 'café': 'coffee', te: 'tea', 'té': 'tea', vino: 'wine', copa: 'wine', fruta: 'orange', naranja: 'orange', limon: 'orange', 'limón': 'orange', manzana: 'apple', palta: 'avocado', zanahoria: 'carrot', cereza: 'cherries', uva: 'grape', pizza: 'pizza', helado: 'ice-cream', torta: 'cake', pan: 'bread', hongo: 'mushroom', calavera: 'skull', ancla: 'anchor', llave: 'key', candado: 'lock', corona: 'crown', diamante: 'diamond', anillo: 'ring', regalo: 'gift', globo: 'balloon', musica: 'music', 'música': 'music', guitarra: 'guitar', libro: 'book', lapiz: 'pencil', 'lápiz': 'pencil', tijera: 'scissors', reloj: 'clock', vela: 'candle', lampara: 'lamp', 'lámpara': 'lamp', bicho: 'bug', huella: 'paw', pata: 'paw', trebol: 'clover', 'trébol': 'clover', pluma: 'feather', semilla: 'acorn', bellota: 'acorn', arbolito: 'tree', navidad: 'tree-evergreen', planeta: 'planet', cohete: 'rocket', avion: 'airplane', barco: 'boat', bote: 'boat', bici: 'bicycle', camara: 'camera', 'cámara': 'camera', sombrero: 'hat', zapato: 'sneaker', zapatilla: 'sneaker', cartera: 'handbag', vestido: 'dress', camisa: 'shirt', gafas: 'eyeglasses', anteojos: 'eyeglasses', lentes: 'eyeglasses', tortuga: 'turtle', pinguino: 'bird', ballena: 'fish', mate: 'coffee', parrilla: 'cooking-pot', olla: 'cooking-pot', jarron: 'flower-tulip', 'jarrón': 'flower-tulip', tulipan: 'flower-tulip', 'tulipán': 'flower-tulip', loto: 'flower-lotus', rosa: 'flower' };
+function motLoad() {
+  if (MOT.list || MOT.loading) return Promise.resolve();
+  MOT.loading = true;
+  return fetch('motivos/phosphor.json').then(function (r) { return r.json(); }).then(function (j) { MOT.list = j; }).catch(function () { MOT.list = []; }).then(function () { MOT.loading = false; });
+}
+var EN_ES_MOT = {}; Object.keys(ES_EN_MOT).forEach(function (k) { if (!EN_ES_MOT[ES_EN_MOT[k]]) EN_ES_MOT[ES_EN_MOT[k]] = k; });
+function motName(n) { var b = n.split('-')[0]; return EN_ES_MOT[n] || (EN_ES_MOT[b] ? EN_ES_MOT[b] + (n !== b ? ' · ' + n.slice(b.length + 1).replace(/-/g, ' ') : '') : n.replace(/-/g, ' ')); }
+function motSVG(inner, sw) { return '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 256 256" fill="#111">' + inner + '</svg>'; }
+function motSearch(q) {
+  if (!MOT.list) return [];
+  var words = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-zñ]+/).filter(function (w) { return w.length > 1; });
+  var terms = []; words.forEach(function (w) { var en = ES_EN_MOT[w] || ES_EN_MOT[w.replace(/s$/, '')]; if (en) terms.push(en); terms.push(w); });
+  if (MOT.extra) terms = terms.concat(MOT.extra);
+  var sc = MOT.list.map(function (it) { var s = 0; terms.forEach(function (t) { if (it[0] === t) s += 10; else if (it[0].indexOf(t) >= 0) s += 5; else if ((' ' + it[1] + ' ').indexOf(' ' + t) >= 0) s += 2; }); return [s, it]; });
+  return sc.filter(function (x) { return x[0] > 0; }).sort(function (a, b) { return b[0] - a[0]; }).slice(0, 18).map(function (x) { return x[1]; });
+}
+
+/* ---------- Claude dibuja, mira su dibujo y lo corrige ---------- */
+var MOT_STYLES = {
+  linea: ['Línea fina', 'ilustración de línea fina y elegante, trazo continuo y seguro, como un dibujo editorial de revista de diseño'],
+  botanico: ['Botánico', 'ilustración botánica de línea, con nervaduras y detalles naturales, estilo grabado antiguo simplificado'],
+  folk: ['Folk', 'motivo de arte popular para cerámica pintada (talavera, cerámica portuguesa o folk nórdico): formas redondeadas, simétrico, con pequeños adornos'],
+  unalinea: ['Una sola línea', 'dibujo de una sola línea continua (one line art) minimalista y fluido'],
+  geometrico: ['Geométrico', 'motivo geométrico y ornamental, preciso, con simetría y repetición'],
+  silueta: ['Silueta', 'silueta rellena en negro, con contorno limpio y reconocible, ideal para esténcil (sin islas sueltas)']
+};
+function svgClean(txt) {
+  var m = String(txt || '').match(/<svg[\s\S]*<\/svg>/i);
+  if (!m || /<script|foreignObject|on[a-z]+\s*=|href|<image|url\(|<style/i.test(m[0])) return null;
+  var s = m[0]; if (!/xmlns=/.test(s)) s = s.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+  s = s.replace(/<svg([^>]*?)\s(width|height)="[^"]*"/gi, '<svg$1').replace(/<svg([^>]*?)\s(width|height)="[^"]*"/gi, '<svg$1');
+  return s.replace(/<svg/i, '<svg width="512" height="512"');
+}
+function svgToPngBlob(svg) {
+  return new Promise(function (res, rej) {
+    var im = new Image(); im.onload = function () { var c = document.createElement('canvas'); c.width = c.height = 512; var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 512, 512); g.drawImage(im, 0, 0, 512, 512); c.toBlob(res, 'image/png'); };
+    im.onerror = rej; im.src = svgURL(svg);
+  });
+}
+async function motDrawOne(sample, word, styleKey, variant) {
+  var st = MOT_STYLES[styleKey][1], fill = styleKey === 'silueta';
+  var rules = 'viewBox="0 0 512 512". Usá sobre todo <path> con curvas Bézier (C, Q, S) bien construidas; también circle, ellipse, line, polyline, polygon y g. ' +
+    (fill ? 'fill="#111", stroke="none". ' : 'fill="none", stroke="#111", stroke-linecap="round", stroke-linejoin="round", grosores entre 3 y 7 (más grueso el contorno principal, más fino el detalle). ') +
+    'Sin texto, sin degradés, sin sombreado de tramas, sin <style>, sin scripts, sin imágenes ni enlaces.';
+  var p1 = 'Sos ilustrador profesional y diseñás motivos para decorar cerámica. Dibujá en SVG: "' + word + '". Estilo: ' + st + '.\n' +
+    'Antes de dibujar, pensá en silencio: qué rasgos hacen reconocible al tema, la proporción real de sus partes y una composición centrada que ocupe el 80 % del lienzo' + (variant ? ', y elegí una pose o composición distinta a la más obvia' : '') + '.\n' +
+    'Reglas: ' + rules + '\nRespondé SOLO con el código SVG.';
+  var r1 = await sample(p1, { modelTier: 'complex' }), s1 = svgClean(r1 && r1.text || r1);
+  if (!s1) throw { code: 'bad' };
+  MOT.step = 'Revisando el dibujo…'; render();
+  try {
+    var png = await svgToPngBlob(s1);
+    var p2 = 'Esta imagen es tu primer boceto en SVG de "' + word + '" (estilo: ' + st + '). Miralo con ojo crítico de ilustrador: ¿se reconoce el tema a primera vista? ¿las proporciones y la anatomía son creíbles? ¿hay líneas que se cruzan sin sentido, partes desconectadas o vacíos raros? ¿la composición está centrada y equilibrada?\n' +
+      'Rehacelo corrigiendo todo lo que esté mal y mejorando la elegancia del trazo. Reglas: ' + rules + '\nEste es el SVG del boceto:\n' + s1.slice(0, 12000) + '\nRespondé SOLO con el SVG final.';
+    var r2 = await sample(p2, { images: [png], modelTier: 'complex' }), s2 = svgClean(r2 && r2.text || r2);
+    return s2 || s1;
+  } catch (e) { return s1; }
+}
+async function motAI() {
+  var word = MOT.q.trim(); if (!word) { MOT.err = 'Escribí qué querés dibujar.'; return render(); }
+  var sample = await claude.use('sample'); if (!sample) { MOT.err = 'Para dibujar con Claude hace falta la IA activa.'; return render(); }
+  MOT.busy = true; MOT.err = ''; MOT.ai = []; MOT.step = 'Dibujando dos versiones…'; render();
+  var done = await Promise.all([0, 1].map(function (v) { return motDrawOne(sample, word, MOT.style, v).catch(function (e) { return e; }); }));
+  MOT.ai = done.filter(function (x) { return typeof x === 'string'; });
+  if (!MOT.ai.length) { var e = done[0]; MOT.err = e && e.code === 'bad' ? 'Claude no devolvió un dibujo válido. Probá con otra palabra o estilo.' : aiError(e); }
+  MOT.busy = false; MOT.step = ''; render();
+}
+async function motExtraTerms(q) { /* si el diccionario no alcanza, Claude traduce a palabras clave en inglés */
+  if (!S.aiOk || motSearch(q).length >= 4) return;
+  try { var sample = await claude.use('sample'); if (!sample) return; var r = await sample('Dame de 3 a 6 palabras clave en inglés, en minúscula y separadas por espacios, para buscar íconos de: "' + q + '". Respondé solo las palabras.', { modelTier: 'quick' }); MOT.extra = String(r.text || r).toLowerCase().split(/[^a-z-]+/).filter(Boolean).slice(0, 6); render(); } catch (e) {}
+}
+function motUse(svg, name) {
+  var url = svgURL(svg);
+  if (MOT.target === 'estudio') { set({ screen: 'estudio' }); return addImgLayer(url, name); }
+  TRC.src = url; TRC.name = name; TRC.gray = null; set({ screen: 'calcar' });
+}
+
+function vMotivos() {
+  if (!MOT.list && !MOT.loading) motLoad().then(render);
+  var res = MOT.q ? motSearch(MOT.q) : [];
+  var styles = Object.keys(MOT_STYLES).map(function (k) { return '<button class="chip' + (MOT.style === k ? ' on' : '') + '" data-mots="' + k + '">' + MOT_STYLES[k][0] + '</button>'; }).join('');
+  return '<div class="pad"><div class="row"><button class="round bordered" data-go="' + MOT.target + '" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">' + (MOT.target === 'estudio' ? 'Estudio' : 'Calcar') + '</span></div>' +
+    '<h1>Buscar un <em>dibujo</em></h1>' +
+    '<form class="sbox" data-motform="1"><input id="motq" type="search" enterkeyhint="search" placeholder="Ej: colibrí, limón, ola, cardón" value="' + esc(MOT.q) + '" aria-label="Qué querés dibujar"><button class="sgo" type="submit">Buscar</button></form>' +
+    '<section><span class="eyebrow">Copiar un diseño que viste</span><p class="muted sm">¿Viste un diseño que te gusta en Pinterest o Instagram? Hacele captura de pantalla y subila: lo paso a líneas limpias para calcar.</p><button class="secondary" data-motcopy="1">' + I.photo + ' Subir captura o foto</button></section>' +
+    (MOT.q ? '<section><span class="eyebrow">Motivos listos' + (res.length ? ' · ' + res.length : '') + '</span>' +
+      (MOT.loading ? '<p class="muted sm">Cargando biblioteca…</p>' : (res.length ? '<div class="artgrid">' + res.map(function (it, k) { return '<button class="artbtn" data-motlib="' + k + '"><img src="' + svgURL(motSVG(it[2])) + '" alt=""><span>' + esc(it[0].replace(/-/g, ' ')) + '</span></button>'; }).join('') + '</div>' : '<p class="muted sm">No hay motivos listos para eso. Probá con Claude.</p>')) + '</section>' : '') +
+    (S.aiOk ? '<section class="aimini"><span class="eyebrow">' + I.spark + ' Que lo dibuje Claude</span><div class="chips tight">' + styles + '</div>' +
+      '<button class="primary" data-motai="1"' + (MOT.busy ? ' disabled' : '') + '>' + (MOT.busy ? esc(MOT.step || 'Dibujando…') : 'Dibujar' + (MOT.q ? ' “' + esc(MOT.q) + '”' : '')) + '</button>' +
+      '<p class="muted xs">Hace dos versiones; cada una la revisa mirándola y la corrige. Tarda alrededor de un minuto.</p>' +
+      (MOT.err ? '<p class="sm">' + esc(MOT.err) + '</p>' : '') +
+      (MOT.ai.length ? '<div class="artgrid two">' + MOT.ai.map(function (s, k) { return '<button class="artbtn big" data-motpick="' + k + '"><img src="' + svgURL(s) + '" alt="Versión ' + (k + 1) + '"><span>Usar versión ' + (k + 1) + '</span></button>'; }).join('') + '</div>' : '') + '</section>' : '') +
+    '</div>';
+}
+document.addEventListener('submit', function (e) {
+  if (!e.target.dataset || !e.target.dataset.motform) return; e.preventDefault(); e.stopPropagation();
+  MOT.q = ((document.getElementById('motq') || {}).value || '').trim(); MOT.extra = null; MOT.ai = []; render(); motExtraTerms(MOT.q);
+}, true);
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return; var d = b.dataset;
+  if (d.motgo) { MOT.target = d.motgo; MOT.err = ''; var pre = ((document.getElementById(d.motgo === 'estudio' ? 'objq' : 'trq') || {}).value || '').trim(); if (pre) MOT.q = pre; return set({ screen: 'motivos' }); }
+  if (d.mots) { MOT.style = d.mots; return render(); }
+  if (d.motai) { MOT.q = ((document.getElementById('motq') || {}).value || MOT.q).trim(); return motAI(); }
+  if (d.motlib) { var it = motSearch(MOT.q)[+d.motlib]; if (it) return motUse(motSVG(it[2]), motName(it[0])); }
+  if (d.motpick) { return motUse(MOT.ai[+d.motpick], MOT.q || 'Dibujo'); }
+  if (d.motcopy) { return startCut(MOT.target); }
+});
 /* ===================== v11: Maison — orden nuevo, proyectos y marca ===================== */
 var MARK_VASE = 'M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z';
 var MARK_GLAZE = 'M0,0 H100 V49 C92,49 90,52 86,52 C82,52 81,50 77,50 C72,50 71,54 71,57 C71,60 68,60 68,57 C68,53 66,51 61,51 C57,51 57,55 57,63 C57,68 53,68 53,63 C53,56 52,52 47,52 C42,52 40,50 37,50 C34,50 34,54 34,59 C34,62 31,62 31,59 C31,53 29,50 24,50 C18,50 14,52 0,52 Z';
@@ -3326,11 +3447,11 @@ function studioTabs(on) {
 /* ---------- render con el orden nuevo ---------- */
 var SUBS = { texturas: 'explorar', referentes: 'explorar', apps: 'explorar', proceso: null, idear: 'explorar', colecciones: null };
 function render() {
-  var v = { home: vHome, explorar: vExplorar, colecciones: vColecciones, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte, plantilla: vPlantilla, calib: vCalib, moldes: vMoldes }[S.screen] || vHome;
+  var v = { home: vHome, explorar: vExplorar, colecciones: vColecciones, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte, plantilla: vPlantilla, calib: vCalib, moldes: vMoldes, motivos: vMotivos }[S.screen] || vHome;
   var keep = {}, act = document.activeElement && document.activeElement.id;
   ['aiq', 'sq', 'trq', 'mdq'].forEach(function (k) { var el = document.getElementById(k); if (el && el.value) keep[k] = el.value; });
   var html = v();
-  var tab = { idea: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', pasos: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', list: 'explorar', colecciones: 'explorar', ai: 'home', textura: 'explorar', texturas: 'explorar', apps: 'explorar', buscar: 'explorar', referentes: 'explorar', proceso: S.from === 'mia' ? 'mia' : 'explorar', idear: 'explorar', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio', moldes: 'estudio' }[S.screen] || S.screen;
+  var tab = { idea: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', pasos: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', list: 'explorar', colecciones: 'explorar', ai: 'home', textura: 'explorar', texturas: 'explorar', apps: 'explorar', buscar: 'explorar', referentes: 'explorar', proceso: S.from === 'mia' ? 'mia' : 'explorar', idear: 'explorar', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio', moldes: 'estudio', motivos: 'estudio' }[S.screen] || S.screen;
   if (['estudio', 'calcar', 'plantilla', 'moldes'].indexOf(S.screen) >= 0) html = '<div class="segwrap"><span class="eyebrow">Estudio</span>' + studioTabs(S.screen) + '</div>' + html;
   if (['texturas', 'referentes', 'idear', 'colecciones', 'proceso'].indexOf(S.screen) >= 0) html = html.replace('<div class="pad">', '<div class="pad"><button class="backlink" data-go="' + (tab === 'mia' ? 'mia' : 'explorar') + '">' + I.back + (tab === 'mia' ? 'Mi atelier' : 'Explorar') + '</button>');
   document.getElementById('main').innerHTML = html;
