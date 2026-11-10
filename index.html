@@ -351,6 +351,8 @@ button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 
 .advbox{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px dashed #D3C6B6;border-radius:16px}
 .laybox{display:flex;flex-direction:column;gap:10px}
 .undorow{display:flex;justify-content:space-between;align-items:center;margin:-8px 0 -10px}.zoomctl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}.zoomctl .mini{width:36px;padding:0;font-size:18px}.cutwrap{overflow:hidden;border-radius:14px;position:relative;touch-action:none}.seg:has(button:nth-child(5)){grid-template-columns:repeat(5,1fr)}.undorow .mini:disabled{opacity:.35}
+.cutwrap.res{background:#fff;border:1px solid var(--line)}.cuthint{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center;padding:20px}
+.mini.on{background:var(--ink);color:#F7F2EA;border-color:var(--ink)}
 /* navegación */
 nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
@@ -2695,7 +2697,7 @@ var CUT = { url: null, img: null, w: 0, h: 0, mask: null, gray: null, boxes: [],
 function cutReset(target) { return { url: null, img: null, w: 0, h: 0, mask: null, gray: null, boxes: [], names: [], tool: 'caja', style: 'ambos', det: 55, grosor: 3, busy: false, err: '', target: target, view: 'foto', drag: null, hasMask: false, z: 1, px: 0, py: 0, goma: 3, erVer: 0 }; }
 async function startCut(target) {
   pickPhoto(async function (f) {
-    var b = await shrink(f); CUT = cutReset(target); CUTH = { undo: [], redo: [] }; CUT.url = URL.createObjectURL(b); CUT.blob = b;
+    var b = await shrink(f); CUT = cutReset(target); CUTH = { undo: [], redo: [] }; ZV.cutc = { z: 1, px: 0, py: 0 }; ZV.cutr = { z: 1, px: 0, py: 0 }; CUT.url = URL.createObjectURL(b); CUT.blob = b;
     var im = new Image(); im.onload = function () {
       var k = Math.min(1, 1024 / Math.max(im.width, im.height)); CUT.w = Math.round(im.width * k); CUT.h = Math.round(im.height * k);
       var c = document.createElement('canvas'); c.width = CUT.w; c.height = CUT.h; c.getContext('2d').drawImage(im, 0, 0, CUT.w, CUT.h); CUT.img = c;
@@ -2719,7 +2721,7 @@ async function cutBoxes(boxes, names) {
       var m = await segBox(CUT.img, bx); mg.drawImage(m, bx.x, bx.y, bx.w, bx.h); CUT.boxes.push(bx); CUT.maskVer = (CUT.maskVer || 0) + 1;
     }
     if (names) CUT.names = CUT.names.concat(names);
-    CUT.hasMask = true; CUT.view = 'foto'; CUT.tool = 'sumar';
+    CUT.hasMask = true; CUT.tool = 'sumar';
   } catch (e) { CUT.err = SEG.failed ? 'No se pudo cargar el detector de objetos en este navegador. Probá desde Chrome o Safari actualizados.' : 'No se pudo recortar. Probá de nuevo.'; }
   CUT.busy = false; render(); setTimeout(drawCut, 0);
 }
@@ -2740,21 +2742,6 @@ async function aiCut(pedido) {
   CUT.busy = false; render(); setTimeout(drawCut, 0);
 }
 
-
-/* ---------- zoom ---------- */
-function cutApplyZoom() {
-  var c = document.getElementById('cutc'), w = c && c.parentNode; if (!c) return;
-  var W = w.clientWidth, H = c.offsetHeight; CUT.px = Math.min(0, Math.max(W - W * CUT.z, CUT.px)); CUT.py = Math.min(0, Math.max(H - H * CUT.z, CUT.py));
-  c.style.transformOrigin = '0 0'; c.style.transform = 'translate(' + CUT.px + 'px,' + CUT.py + 'px) scale(' + CUT.z + ')';
-  var zl = document.getElementById('cutzl'); if (zl) zl.textContent = Math.round(CUT.z * 100) + ' %';
-}
-function cutZoomTo(nz, ref, now) {
-  var c = document.getElementById('cutc'); if (!c) return; var r = c.parentNode.getBoundingClientRect();
-  ref = ref || { z: CUT.z, px: CUT.px, py: CUT.py, x: r.left + r.width / 2, y: r.top + c.offsetHeight / 2 }; now = now || ref;
-  var lx = (ref.x - r.left - ref.px) / ref.z, ly = (ref.y - r.top - ref.py) / ref.z;
-  CUT.z = nz; CUT.px = now.x - r.left - lx * nz; CUT.py = now.y - r.top - ly * nz; cutApplyZoom();
-}
-function cutUndoSilent() { if (CUTH.undo.length) { cutRestore(CUTH.undo.pop()); } }
 
 /* ---------- deshacer / rehacer ---------- */
 var CUTH = { undo: [], redo: [] };
@@ -2830,113 +2817,141 @@ function cutResult() {
   og.globalCompositeOperation = 'destination-out'; og.drawImage(CUT.er, 0, 0); return o;
 }
 
-/* ---------- lienzo ---------- */
-function drawCut() {
+/* ---------- lienzos: arriba la foto (qué dibujar), abajo el dibujo (resultado) ---------- */
+var ZV = { cutc: { z: 1, px: 0, py: 0 }, cutr: { z: 1, px: 0, py: 0 } };
+function zApply(id) {
+  var c = document.getElementById(id); if (!c) return; var v = ZV[id], W = c.parentNode.clientWidth, H = c.offsetHeight;
+  v.px = Math.min(0, Math.max(W - W * v.z, v.px)); v.py = Math.min(0, Math.max(H - H * v.z, v.py));
+  c.style.transformOrigin = '0 0'; c.style.transform = 'translate(' + v.px + 'px,' + v.py + 'px) scale(' + v.z + ')';
+  var zl = document.getElementById(id + 'z'); if (zl) zl.textContent = Math.round(v.z * 100) + ' %';
+}
+function zTo(id, nz, ref, now) {
+  var c = document.getElementById(id); if (!c) return; var v = ZV[id], r = c.parentNode.getBoundingClientRect();
+  ref = ref || { z: v.z, px: v.px, py: v.py, x: r.left + r.width / 2, y: r.top + c.offsetHeight / 2 }; now = now || ref;
+  var lx = (ref.x - r.left - ref.px) / ref.z, ly = (ref.y - r.top - ref.py) / ref.z;
+  v.z = nz; v.px = now.x - r.left - lx * nz; v.py = now.y - r.top - ly * nz; zApply(id);
+}
+function cutUndoSilent() { if (CUTH.undo.length) cutRestore(CUTH.undo.pop()); }
+function drawPhoto() {
   var c = document.getElementById('cutc'); if (!c || !CUT.img) return;
-  c.width = CUT.w; c.height = CUT.h; var g = c.getContext('2d');
-  if (CUT.view === 'foto') {
-    g.drawImage(CUT.img, 0, 0);
-    if (CUT.hasMask || CUT.style !== 'contorno') {
-      var t = document.createElement('canvas'); t.width = CUT.w; t.height = CUT.h; var tg = t.getContext('2d');
-      tg.fillStyle = 'rgba(244,239,232,' + (CUT.hasMask ? .82 : .55) + ')'; tg.fillRect(0, 0, CUT.w, CUT.h); if (CUT.hasMask) { tg.globalCompositeOperation = 'destination-out'; tg.drawImage(CUT.mask, 0, 0); }
-      g.drawImage(t, 0, 0);
-      var o = document.createElement('canvas'); o.width = CUT.w; o.height = CUT.h; var og = o.getContext('2d');
-      og.drawImage(cutResult(), 0, 0); og.globalCompositeOperation = 'source-in'; og.fillStyle = '#A4573A'; og.fillRect(0, 0, CUT.w, CUT.h);
-      g.globalAlpha = .9; g.drawImage(o, 0, 0); g.globalAlpha = 1;
-    }
-  } else { g.fillStyle = '#fff'; g.fillRect(0, 0, CUT.w, CUT.h); g.drawImage(cutResult(), 0, 0); }
-  if (CUT.drag) { g.setLineDash([10, 8]); g.lineWidth = Math.max(2, CUT.w / 250); g.strokeStyle = '#171412'; var d = CUT.drag; g.strokeRect(Math.min(d.x0, d.x1), Math.min(d.y0, d.y1), Math.abs(d.x1 - d.x0), Math.abs(d.y1 - d.y0)); g.setLineDash([]); }
-  if (!c.dataset.wired) {
-    c.dataset.wired = '1';
-    var pos = function (e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * CUT.w / r.width, y: (e.clientY - r.top) * CUT.h / r.height }; };
-    var brush = function (p) {
-      var er = CUT.tool === 'borrar', ctx = (er ? CUT.er : CUT.mask).getContext('2d');
-      var rad = (er ? Math.max(CUT.w, CUT.h) / 700 * CUT.goma * 6 : Math.max(CUT.w, CUT.h) / 28) / CUT.z;
-      ctx.save(); if (CUT.tool === 'quitar') ctx.globalCompositeOperation = 'destination-out';
-      var gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.75, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 7); ctx.fill(); ctx.restore();
-      if (er) CUT.erVer = (CUT.erVer || 0) + 1; else { CUT.hasMask = true; CUT.maskVer = (CUT.maskVer || 0) + 1; }
-    };
-    var lastP = null, stroke = function (p) {
-      if (lastP) { var dx = p.x - lastP.x, dy = p.y - lastP.y, dist = Math.hypot(dx, dy), step = Math.max(1, Math.max(CUT.w, CUT.h) / 400 / CUT.z), n = Math.ceil(dist / step); for (var k = 1; k <= n; k++) brush({ x: lastP.x + dx * k / n, y: lastP.y + dy * k / n }); }
-      else brush(p);
-      lastP = p;
-    };
-    var pts = {}, mode = null, last = 0, pinch = null, panStart = null;
-    var two = function () { var k = Object.keys(pts); if (k.length < 2) return null; var a = pts[k[0]], b = pts[k[1]]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) }; };
-    c.addEventListener('pointerdown', function (e) {
-      if (CUT.busy) return; c.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY };
-      if (Object.keys(pts).length >= 2) { /* dos dedos: zoom y mover */
-        if (mode === 'draw') cutUndoSilent(); CUT.drag = null; mode = 'pinch'; var t = two(); pinch = { d: t.d, x: t.x, y: t.y, z: CUT.z, px: CUT.px, py: CUT.py }; drawCut(); return;
-      }
-      var p = pos(e);
-      if (CUT.tool === 'mover') { mode = 'pan'; panStart = { x: e.clientX, y: e.clientY, px: CUT.px, py: CUT.py }; return; }
-      if (CUT.tool === 'caja') { mode = 'box'; CUT.drag = { x0: p.x, y0: p.y, x1: p.x, y1: p.y }; return; }
-      mode = 'draw'; cutPush(); lastP = null; stroke(p); drawCut();
-    });
-    c.addEventListener('pointermove', function (e) {
-      if (!pts[e.pointerId]) return; pts[e.pointerId] = { x: e.clientX, y: e.clientY };
-      if (mode === 'pinch') { var t = two(); if (!t) return; var nz = Math.max(1, Math.min(8, pinch.z * t.d / (pinch.d || t.d))); cutZoomTo(nz, pinch, t); return; }
-      if (mode === 'pan') { CUT.px = panStart.px + e.clientX - panStart.x; CUT.py = panStart.py + e.clientY - panStart.y; cutApplyZoom(); return; }
-      var p = pos(e);
-      if (mode === 'box' && CUT.drag) { CUT.drag.x1 = p.x; CUT.drag.y1 = p.y; drawCut(); return; }
-      if (mode === 'draw') { stroke(p); var now = Date.now(); if (now - last > 90) { last = now; drawCut(); } }
-    });
-    var up = function (e) {
-      delete pts[e.pointerId];
-      if (mode === 'pinch') { if (!Object.keys(pts).length) mode = null; return; }
-      var m = mode; mode = null;
-      if (m === 'box' && CUT.drag) {
-        var d = CUT.drag, b = { x: Math.min(d.x0, d.x1), y: Math.min(d.y0, d.y1), w: Math.abs(d.x1 - d.x0), h: Math.abs(d.y1 - d.y0) }; CUT.drag = null;
-        if (b.w > CUT.w / 25 / CUT.z && b.h > CUT.h / 25 / CUT.z) return cutBoxes([b]);
-      }
-      drawCut();
-    };
-    c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+  if (c.width !== CUT.w) { c.width = CUT.w; c.height = CUT.h; }
+  var g = c.getContext('2d'); g.drawImage(CUT.img, 0, 0);
+  if (CUT.hasMask) {
+    var t = document.createElement('canvas'); t.width = CUT.w; t.height = CUT.h; var tg = t.getContext('2d');
+    tg.fillStyle = 'rgba(23,20,18,.62)'; tg.fillRect(0, 0, CUT.w, CUT.h); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(CUT.mask, 0, 0);
+    g.drawImage(t, 0, 0);
+    var m = document.createElement('canvas'); m.width = CUT.w; m.height = CUT.h; var mg = m.getContext('2d');
+    mg.drawImage(CUT.mask, 0, 0); mg.globalCompositeOperation = 'source-in'; mg.fillStyle = 'rgba(232,193,120,.28)'; mg.fillRect(0, 0, CUT.w, CUT.h);
+    g.drawImage(m, 0, 0);
   }
-  cutApplyZoom();
-  c.style.touchAction = 'none';
+  if (CUT.drag) { g.setLineDash([12, 8]); g.lineWidth = Math.max(3, CUT.w / 200); g.strokeStyle = '#FFFFFF'; var d = CUT.drag; g.strokeRect(Math.min(d.x0, d.x1), Math.min(d.y0, d.y1), Math.abs(d.x1 - d.x0), Math.abs(d.y1 - d.y0)); g.setLineDash([]); }
+  wireCanvas(c, 'photo'); zApply('cutc'); cutBtns();
+}
+function drawResult() {
+  var c = document.getElementById('cutr'); if (!c || !CUT.img) return;
+  c.width = CUT.w; c.height = CUT.h; var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, CUT.w, CUT.h);
+  var empty = !CUT.hasMask && CUT.style === 'contorno';
+  if (!empty) g.drawImage(cutResult(), 0, 0);
+  var h = document.getElementById('cutrhint'); if (h) h.style.display = empty ? 'flex' : 'none';
+  wireCanvas(c, 'result'); zApply('cutr'); cutBtns();
+}
+function drawCut() { drawPhoto(); drawResult(); }
+function cutBtns() {
   var ub = document.querySelector('[data-cx=undo]'), rb = document.querySelector('[data-cx=redo]');
   if (ub) ub.disabled = !CUTH.undo.length || CUT.busy; if (rb) rb.disabled = !CUTH.redo.length || CUT.busy;
 }
+function wireCanvas(c, kind) {
+  if (c.dataset.wired) return; c.dataset.wired = '1'; c.style.touchAction = 'none';
+  var id = c.id;
+  var pos = function (e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * CUT.w / r.width, y: (e.clientY - r.top) * CUT.h / r.height }; };
+  var brush = function (p) {
+    var er = kind === 'result', ctx = (er ? CUT.er : CUT.mask).getContext('2d'), z = ZV[id].z;
+    var rad = (er ? Math.max(CUT.w, CUT.h) / 700 * CUT.goma * 6 : Math.max(CUT.w, CUT.h) / 700 * CUT.pincel * 6) / z;
+    ctx.save(); if (!er && CUT.tool === 'quitar') ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 7); ctx.fill(); ctx.restore();
+    if (er) CUT.erVer = (CUT.erVer || 0) + 1; else { CUT.hasMask = true; CUT.maskVer = (CUT.maskVer || 0) + 1; }
+  };
+  var lastP = null, stroke = function (p) {
+    if (lastP) { var dx = p.x - lastP.x, dy = p.y - lastP.y, n = Math.ceil(Math.hypot(dx, dy) / Math.max(1, CUT.w / 400 / ZV[id].z)); for (var k = 1; k <= n; k++) brush({ x: lastP.x + dx * k / n, y: lastP.y + dy * k / n }); }
+    else brush(p); lastP = p;
+  };
+  var pts = {}, mode = null, pinch = null, panS = null, last = 0;
+  var two = function () { var k = Object.keys(pts); if (k.length < 2) return null; var a = pts[k[0]], b = pts[k[1]]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) }; };
+  var tool = function () { return kind === 'result' ? (CUT.goma_on ? 'goma' : 'mover') : CUT.tool; };
+  c.addEventListener('pointerdown', function (e) {
+    if (CUT.busy) return; c.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (Object.keys(pts).length >= 2) { if (mode === 'draw') cutUndoSilent(); CUT.drag = null; mode = 'pinch'; var t = two(), v = ZV[id]; pinch = { d: t.d, x: t.x, y: t.y, z: v.z, px: v.px, py: v.py }; return; }
+    var tl = tool(), p = pos(e);
+    if (tl === 'mover') { mode = 'pan'; panS = { x: e.clientX, y: e.clientY, px: ZV[id].px, py: ZV[id].py }; return; }
+    if (tl === 'caja') { mode = 'box'; CUT.drag = { x0: p.x, y0: p.y, x1: p.x, y1: p.y }; return; }
+    mode = 'draw'; cutPush(); lastP = null; stroke(p); kind === 'result' ? drawResult() : drawPhoto();
+  });
+  c.addEventListener('pointermove', function (e) {
+    if (!pts[e.pointerId]) return; pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (mode === 'pinch') { var t = two(); if (t) zTo(id, Math.max(1, Math.min(8, pinch.z * t.d / (pinch.d || t.d))), pinch, t); return; }
+    if (mode === 'pan') { ZV[id].px = panS.px + e.clientX - panS.x; ZV[id].py = panS.py + e.clientY - panS.y; zApply(id); return; }
+    var p = pos(e);
+    if (mode === 'box' && CUT.drag) { CUT.drag.x1 = p.x; CUT.drag.y1 = p.y; drawPhoto(); return; }
+    if (mode === 'draw') { stroke(p); var now = Date.now(); if (now - last > 40) { last = now; kind === 'result' ? drawResult() : drawPhoto(); } }
+  });
+  var up = function (e) {
+    delete pts[e.pointerId];
+    if (mode === 'pinch') { if (!Object.keys(pts).length) mode = null; return; }
+    var m = mode; mode = null;
+    if (m === 'box' && CUT.drag) {
+      var d = CUT.drag, b = { x: Math.min(d.x0, d.x1), y: Math.min(d.y0, d.y1), w: Math.abs(d.x1 - d.x0), h: Math.abs(d.y1 - d.y0) }; CUT.drag = null;
+      if (b.w > CUT.w / 30 && b.h > CUT.h / 30) return cutBoxes([b]);
+      drawPhoto(); return;
+    }
+    if (m === 'draw') drawCut(); /* al soltar, se recalcula el dibujo */
+  };
+  c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+}
+function zoomRow(id) { var v = ZV[id]; return '<span class="zoomctl"><button class="mini" data-zo="' + id + '" aria-label="Alejar">−</button><span id="' + id + 'z">' + Math.round(v.z * 100) + ' %</span><button class="mini" data-zi="' + id + '" aria-label="Acercar">+</button></span>'; }
 function vRecorte() {
+  if (CUT.pincel == null) CUT.pincel = 4;
+  if (CUT.style === 'detalles') CUT.style = 'ambos';
   var chips = ['Solo el perro', 'Las personas', 'La flor', 'La cara'].map(function (p) { return '<button class="chip" data-cxq="' + p + '">' + p + '</button>'; }).join('');
-  var tools = [['caja', 'Marcar'], ['sumar', 'Sumar'], ['quitar', 'Quitar'], ['borrar', 'Goma'], ['mover', 'Mover']].map(function (t) { return '<button class="' + (CUT.tool === t[0] ? 'on' : '') + '" data-cxt="' + t[0] + '">' + t[1] + '</button>'; }).join('');
-  var styles = [['contorno', 'Contorno'], ['ambos', 'Contorno + detalles'], ['detalles', 'Solo líneas'], ['relleno', 'Relleno']].map(function (t) { return '<button class="' + (CUT.style === t[0] ? 'on' : '') + '" data-cxs="' + t[0] + '">' + t[1] + '</button>'; }).join('');
-  var hint = { caja: 'Arrastrá un rectángulo alrededor del objeto: lo detecto y lo recorto.', sumar: 'Pintá con el dedo lo que falte del objeto.', quitar: 'Pintá con el dedo lo que sobra del objeto.', borrar: 'Pasá la goma por las líneas que no van.', mover: 'Arrastrá para moverte por la imagen ampliada.' }[CUT.tool] + ' Con dos dedos hacés zoom.';
+  var tools = [['caja', 'Marcar'], ['sumar', 'Pincel +'], ['quitar', 'Pincel −'], ['mover', 'Mover']].map(function (t) { return '<button class="' + (CUT.tool === t[0] ? 'on' : '') + '" data-cxt="' + t[0] + '">' + t[1] + '</button>'; }).join('');
+  var styles = [['contorno', 'Contorno'], ['ambos', 'Con detalles'], ['relleno', 'Relleno']].map(function (t) { return '<button class="' + (CUT.style === t[0] ? 'on' : '') + '" data-cxs="' + t[0] + '">' + t[1] + '</button>'; }).join('');
+  var hint = { caja: 'Arrastrá un rectángulo alrededor del objeto.', sumar: 'Pintá lo que le falte a la zona iluminada.', quitar: 'Pintá lo que sobra de la zona iluminada.', mover: 'Arrastrá para moverte con el zoom.' }[CUT.tool];
   return '<div class="pad"><div class="row"><button class="round bordered" data-go="' + (CUT.target === 'calcar' ? 'calcar' : 'estudio') + '" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Foto a dibujo</span></div>' +
     '<h1>Recortar y <em>dibujar</em></h1>' +
-    (S.aiOk ? '<div class="aimini"><span class="eyebrow">' + I.spark + ' ¿Qué querés dejar?</span><input id="cutq" class="tinput" placeholder="Ej: solo el perro · las dos personas"><div class="chips tight">' + chips + '</div>' +
-      '<button class="primary" data-cx="ai"' + (CUT.busy ? ' disabled' : '') + '>Buscar en la foto</button></div>' : '') +
-    '<div class="seg">' + tools + '</div><p class="muted xs" style="margin-top:-14px">' + hint + '</p>' +
-    (CUT.tool === 'borrar' ? '<label class="sm">Tamaño de la goma <input type="range" min="1" max="10" step=".5" value="' + CUT.goma + '" data-cxr="goma"></label>' : '') +
-    '<div class="undorow"><button class="mini" data-cx="undo"' + (CUTH.undo.length && !CUT.busy ? '' : ' disabled') + ' aria-label="Deshacer">↶ Deshacer</button><span class="zoomctl"><button class="mini" data-cx="zout" aria-label="Alejar">−</button><span id="cutzl">' + Math.round((CUT.z || 1) * 100) + ' %</span><button class="mini" data-cx="zin" aria-label="Acercar">+</button></span><button class="mini" data-cx="redo"' + (CUTH.redo.length && !CUT.busy ? '' : ' disabled') + ' aria-label="Rehacer">Rehacer ↷</button></div>' +
-    '<div class="cutwrap"><canvas id="cutc" aria-label="Foto y recorte"></canvas>' + (CUT.busy ? '<div class="cutbusy">Detectando el objeto…</div>' : '') + '</div>' +
+    '<div class="undorow"><button class="mini" data-cx="undo" disabled>↶ Deshacer</button><button class="mini" data-cx="redo" disabled>Rehacer ↷</button></div>' +
+    stepHead(1, 'Elegí qué dibujar', 'Lo elegido queda iluminado; el resto, oscuro') +
+    (S.aiOk ? '<div class="aimini"><input id="cutq" class="tinput" placeholder="Decime qué dejar: el perro, las dos personas…"><div class="chips tight">' + chips + '</div>' +
+      '<button class="primary" data-cx="ai"' + (CUT.busy ? ' disabled' : '') + '>' + I.spark + ' Buscar en la foto</button></div>' : '') +
+    '<div class="seg">' + tools + '</div><div class="between"><span class="muted xs">' + hint + '</span>' + zoomRow('cutc') + '</div>' +
+    (CUT.tool === 'sumar' || CUT.tool === 'quitar' ? '<label class="sm">Tamaño del pincel <input type="range" min="1" max="12" step=".5" value="' + CUT.pincel + '" data-cxr="pincel"></label>' : '') +
+    '<div class="cutwrap"><canvas id="cutc" aria-label="Foto"></canvas>' + (CUT.busy ? '<div class="cutbusy">Detectando el objeto…</div>' : '') + '</div>' +
     (CUT.names.length ? '<p class="sm">Encontré: <b>' + esc(CUT.names.join(', ')) + '</b></p>' : '') + (CUT.err ? '<p class="sm">' + esc(CUT.err) + '</p>' : '') +
-    '<div class="seg two-v"><button class="' + (CUT.view === 'foto' ? 'on' : '') + '" data-cxv="foto">Sobre la foto</button><button class="' + (CUT.view === 'dibujo' ? 'on' : '') + '" data-cxv="dibujo">Solo el dibujo</button></div>' +
-    '<span class="eyebrow">Líneas</span><div class="seg">' + styles + '</div>' +
+    '<div class="two"><button class="secondary" data-cx="all">Toda la foto</button><button class="secondary" data-cx="clear">Empezar de nuevo</button></div>' +
+    stepHead(2, 'Tu dibujo', 'Así queda para calcar') +
+    '<div class="seg">' + styles + '</div>' +
     (CUT.style !== 'contorno' ? '<label class="sm">' + (CUT.style === 'relleno' ? 'Cuánto rellena' : 'Cantidad de detalle') + ' <input type="range" min="0" max="100" value="' + CUT.det + '" data-cxr="det"></label>' : '') +
-    (CUT.style === 'relleno' ? '' : '<label class="sm">Grosor de línea <input type="range" min="1" max="8" step=".5" value="' + CUT.grosor + '" data-cxr="grosor"></label>') +
-    '<div class="two"><button class="secondary" data-cx="clear">Empezar de nuevo</button><button class="secondary" data-cx="all">Toda la foto</button></div>' +
+    (CUT.style !== 'relleno' ? '<label class="sm">Grosor de línea <input type="range" min="1" max="8" step=".5" value="' + CUT.grosor + '" data-cxr="grosor"></label>' : '') +
+    '<div class="between"><button class="mini' + (CUT.goma_on ? ' on' : '') + '" data-cx="goma">' + (CUT.goma_on ? '✓ Goma activada' : 'Goma para borrar líneas') + '</button>' + zoomRow('cutr') + '</div>' +
+    (CUT.goma_on ? '<label class="sm">Tamaño de la goma <input type="range" min="1" max="10" step=".5" value="' + CUT.goma + '" data-cxr="goma"></label>' : '') +
+    '<div class="cutwrap res"><canvas id="cutr" aria-label="Dibujo resultante"></canvas><div id="cutrhint" class="cuthint">Marcá el objeto en la foto de arriba</div></div>' +
     '<button class="primary" data-cx="use">' + (CUT.target === 'calcar' ? 'Usar para calcar' : 'Agregar al diseño') + '</button></div>';
 }
 document.addEventListener('click', function (e) {
   var b = e.target.closest('button'); if (!b) return; var d = b.dataset;
+  if (d.zi) return zTo(d.zi, Math.min(8, ZV[d.zi].z * 1.5));
+  if (d.zo) return zTo(d.zo, Math.max(1, ZV[d.zo].z / 1.5));
   if (d.cxq) { var ci = document.getElementById('cutq'); if (ci) ci.value = d.cxq; return aiCut(d.cxq); }
   if (d.cxt) { CUT.tool = d.cxt; render(); return setTimeout(drawCut, 0); }
   if (d.cxs) { CUT.style = d.cxs; render(); return setTimeout(drawCut, 0); }
-  if (d.cxv) { CUT.view = d.cxv; render(); return setTimeout(drawCut, 0); }
   if (!d.cx) return;
   switch (d.cx) {
     case 'ai': var q = ((document.getElementById('cutq') || {}).value || '').trim(); if (!q) { CUT.err = 'Escribí qué querés dejar.'; render(); return setTimeout(drawCut, 0); } return aiCut(q);
-    case 'clear': cutPush(); CUT.mask.getContext('2d').clearRect(0, 0, CUT.w, CUT.h); CUT.er.getContext('2d').clearRect(0, 0, CUT.w, CUT.h); CUT.erVer = 0; CUT.hasMask = false; CUT.names = []; CUT.boxes = []; CUT.tool = 'caja'; CUT.maskVer = (CUT.maskVer || 0) + 1; break;
-    case 'zin': return cutZoomTo(Math.min(8, CUT.z * 1.5));
-    case 'zout': return cutZoomTo(Math.max(1, CUT.z / 1.5));
     case 'undo': return cutUndo();
     case 'redo': return cutRedo();
+    case 'goma': CUT.goma_on = !CUT.goma_on; break;
+    case 'clear': cutPush(); CUT.mask.getContext('2d').clearRect(0, 0, CUT.w, CUT.h); CUT.er.getContext('2d').clearRect(0, 0, CUT.w, CUT.h); CUT.erVer = 0; CUT.hasMask = false; CUT.names = []; CUT.boxes = []; CUT.tool = 'caja'; CUT.maskVer = (CUT.maskVer || 0) + 1; break;
     case 'all': return cutBoxes([{ x: 0, y: 0, w: CUT.w, h: CUT.h }]);
     case 'use':
-      var res = cutResult(), tc = document.createElement('canvas'); tc.width = res.width; tc.height = res.height; var tg = tc.getContext('2d'); tg.drawImage(res, 0, 0);
+      var res = cutResult(), tc = document.createElement('canvas'); tc.width = res.width; tc.height = res.height; tc.getContext('2d').drawImage(res, 0, 0);
       var url = tc.toDataURL('image/png');
       if (CUT.target === 'calcar') { TRC.src = url; TRC.name = 'Foto'; TRC.gray = null; return set({ screen: 'calcar' }); }
       set({ screen: 'estudio' }); return addImgLayer(url, CUT.names.length ? CUT.names.join(' y ') : 'Foto');
@@ -2945,7 +2960,8 @@ document.addEventListener('click', function (e) {
 });
 document.addEventListener('input', function (e) {
   var d = e.target.dataset || {}; if (!d.cxr) return;
-  CUT[d.cxr] = +e.target.value; clearTimeout(CUT.t); CUT.t = setTimeout(drawCut, 120);
+  CUT[d.cxr] = +e.target.value; if (d.cxr === 'goma' || d.cxr === 'pincel') return;
+  clearTimeout(CUT.t); CUT.t = setTimeout(drawResult, 150);
 });
 /* ===================== v12: moldes para cerámica en placa ===================== */
 var MD_PRESETS = {
