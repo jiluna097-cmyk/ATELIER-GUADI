@@ -21,7 +21,7 @@ export default async (req) => {
     const t = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5', max_tokens: 20, messages: [{ role: 'user', content: 'Respondé solo: funciona' }] })
+      body: JSON.stringify({ model: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5', max_tokens: 400, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: 'Respondé solo: funciona' }] })
     });
     const tj = await t.json().catch(() => ({}));
     const ok = t.ok;
@@ -29,7 +29,9 @@ export default async (req) => {
       clave_cargada: true,
       modelo: process.env.CLAUDE_MODEL || 'claude-sonnet-5-5',
       resultado: ok ? 'OK: Claude responde' : 'ERROR ' + t.status,
-      detalle: ok ? (tj.content || []).map((c) => c.text).join('') : (tj.error && tj.error.message) || tj
+      detalle: ok ? (tj.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('') : (tj.error && tj.error.message) || tj,
+      bloques: ok ? (tj.content || []).map((c) => c.type) : [],
+      fin: tj.stop_reason || ''
     }, null, 2), { status: 200, headers });
   }
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers });
@@ -55,7 +57,7 @@ export default async (req) => {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model, max_tokens: 4000, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ model, max_tokens: 8000, thinking: { type: 'disabled' }, messages: [{ role: 'user', content }] })
   });
   if (r.status === 429) return new Response(JSON.stringify({ error: 'rate_limited' }), { status: 429, headers });
   if (!r.ok) {
@@ -66,5 +68,6 @@ export default async (req) => {
   }
   const j = await r.json();
   const text = (j.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
+  if (!text) return new Response(JSON.stringify({ error: 'empty', message: 'Claude respondió sin texto (' + (j.stop_reason || '?') + ')' }), { status: 502, headers });
   return new Response(JSON.stringify({ text, truncated: j.stop_reason === 'max_tokens' }), { status: 200, headers });
 };
