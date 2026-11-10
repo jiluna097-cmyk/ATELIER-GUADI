@@ -4,16 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier Guadi</title>
-<meta name="theme-color" content="#F6F0E7">
+<meta name="theme-color" content="#F4EFE8">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Atelier Guadi">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="description" content="Ideas, texturas y diseños para cerámica">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="description" content="Cerámica de autor: ideas, diseño y plantillas">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Playfair+Display:wght@600&family=Great+Vibes&family=Pacifico&family=Bebas+Neue&family=Abril+Fatface&family=Caveat:wght@600&family=Cinzel:wght@600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Playfair+Display:wght@600&family=Great+Vibes&family=Pacifico&family=Bebas+Neue&family=Abril+Fatface&family=Caveat:wght@600&family=Cinzel:wght@600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;background:#F4EFE8;color:#2B2420;font-family:Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%}
@@ -173,66 +175,150 @@ nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:re
 nav button{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:transparent;color:#6E625A;font-size:11px;font-weight:600;min-height:56px;justify-content:center}
 nav button.on{color:#A4502F}
 
-/* ======== TEMA COZY: simple y cálido ======== */
-:root{--bg:#F6F0E7;--card:#FFFBF5;--ink:#3A2D25;--muted:#857467;--accent:#B66A4C;--accent2:#8E9B7A;--sand:#EFE5D8;--line:#E8DCCB}
-html,body{background:var(--bg);color:var(--ink);font-family:Nunito,Inter,system-ui,sans-serif}
-h1,h2,h3,.ctitle,.ltitle,.at,.ptitle,.hero-t,.ttitle,#v3t,.gtext,.big,.anum,.brand b{font-family:Fraunces,Georgia,serif!important;font-style:normal!important;font-weight:600;letter-spacing:-.01em}
-h1{font-size:34px;line-height:1.1}h2{font-size:30px}
-.eyebrow{font-family:Nunito,sans-serif;font-weight:700;font-size:12px;letter-spacing:.12em;color:var(--muted)}
-.muted{color:var(--muted)}
-.pad{gap:22px}
-.brand{display:flex;align-items:center;gap:10px}.brand b{font-size:20px;color:var(--ink)}.brand span span{display:none}
-.card,.ref,.cell,.grow,.acc,.rcard,.mode,.layerctl{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(58,45,37,.04)}
-.thumb{border-radius:16px;overflow:hidden}.thumb img{width:100%;height:100%;object-fit:cover}
-.ctitle{font-size:20px}
-.tag{background:var(--sand)!important;color:var(--muted)!important;border-radius:999px;font-family:Nunito,sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.08em;padding:3px 10px}
-.feature{border-radius:24px;background:var(--card)!important;border:1px solid var(--line)}
-.feature .eyebrow{color:var(--accent)!important}
-.primary{background:var(--accent);color:#fff;border-radius:16px;font-family:Nunito,sans-serif;font-weight:700}
-.secondary{background:var(--card);border:1px solid var(--line);border-radius:16px;font-family:Nunito,sans-serif;font-weight:700;color:var(--ink)}
-.secondary.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.chip,.lbtn{border-radius:999px;border:1px solid var(--line);background:var(--card);font-family:Nunito,sans-serif;font-weight:600;color:var(--ink)}
-.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.pill{border-radius:999px;font-family:Nunito,sans-serif;font-weight:700}
-.b3d{background:var(--ink)!important;color:#fff}
-/* Idear con Claude: cálido y liviano */
-.aibox{background:var(--sand);color:var(--ink);border:1px solid var(--line);border-radius:24px;padding:20px}
-.aibox .eyebrow{color:var(--accent)!important;font-size:12px}
-.aibox .aih{font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:600;line-height:1.2;margin:-4px 0 0}
-.aibox textarea{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px}
-.aibox textarea::placeholder{color:#A8978A}
-.primary.light{background:var(--accent);color:#fff}
-.secondary.dark{background:var(--card);color:var(--ink);border-color:var(--line)}
-.chip.dk{background:transparent;border:1px solid #DCCDBA;color:var(--ink);font-size:13px}
-.gcard{background:var(--sand);color:var(--ink);border:1px solid var(--line);border-radius:24px}
-.hero{background:var(--accent);border-radius:20px}.hero.dark{background:var(--ink)}
-.note{background:var(--sand);border-radius:18px}.note .eyebrow{color:var(--accent)}
-.tip{background:var(--sand);border-radius:14px}
-.step{border-radius:22px}
-.big{color:var(--accent)}
-.bar div{background:var(--accent)}
-.srow.on .num,.srow.done .num{background:var(--accent)}
-.anum{background:var(--sand);color:var(--accent)}
-.sbox{border-radius:16px;border:1px solid var(--line);background:var(--card)}
-.sgo{border-radius:12px;background:var(--ink)}
-.shortcuts button{background:var(--card);border:1px solid var(--line);border-radius:18px}
-.shortcuts b{font-family:Fraunces,Georgia,serif;font-size:18px}
-.lmosaic{border-radius:20px}
-.stagewrap{border-radius:22px}
-.spanel{background:var(--sand);border-radius:20px}
-.tools button.on{background:var(--ink);border-color:var(--ink)}
-.empty{border:1px dashed var(--line);border-radius:20px}
-.ihero{border-radius:0 0 28px 28px;overflow:hidden}
+/* ======== TEMA MAISON: porcelana, esmalte negro, terracota y oro ======== */
+:root{--bg:#F4EFE8;--card:#FFFCF7;--ink:#171412;--muted:#877B71;--clay:#A4573A;--gold:#B8975A;--line:#E5DCD0;--sand:#EDE5D9;--accent:#A4573A}
+html,body{background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-weight:400}
+body{background-image:radial-gradient(rgba(23,20,18,.035) 1px,transparent 1px);background-size:3px 3px}
+h1,h2,h3,.ctitle,.ltitle,.at,.ptitle,.hero-t,.ttitle,#v3t,.gtext,.big,.anum,.pt{font-family:'Cormorant Garamond',Georgia,serif!important;font-weight:500!important;letter-spacing:-.005em;font-style:normal}
+h1{font-size:44px;line-height:1;margin:0}h2{font-size:38px;line-height:1.05}h3{font-size:28px}
+h1 em,h2 em{font-style:italic;color:var(--clay);font-weight:400}
+.eyebrow{font-family:Inter,sans-serif;font-weight:600;font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.eyebrow::before{content:'';width:16px;height:1px;background:var(--gold);flex:0 0 16px}
+.eyebrow svg{width:14px;height:14px}
+.muted{color:var(--muted)}.sm{font-size:14px;line-height:1.55}.xs{font-size:12px;line-height:1.45}
+.lead{font-size:16px;line-height:1.6;color:#3B342F}
+.pad{gap:26px;padding:22px 22px 32px}
+section{display:flex;flex-direction:column;gap:10px}
+/* marca */
+.top{display:flex;align-items:center;justify-content:space-between;margin:-4px 0 -6px}
+.wm{display:flex;align-items:center;gap:10px}.wm .mark{flex:0 0 auto}
+.wmt{display:flex;align-items:baseline;gap:8px;line-height:1}
+.wmt i{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:500;font-size:25px}
+.wmt b{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:18px;letter-spacing:.32em}
+.hello{display:flex;flex-direction:column;gap:6px}
+.home h1{font-size:50px}
+/* superficies */
+.card,.ref,.cell,.grow,.acc,.rcard,.layerctl,.step,.coll,.prow,.rowlink,.invite{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:none}
+.card{border-radius:18px}.thumb,.tthumb,.lmosaic{border-radius:14px}
+.thumb img,.tthumb img{object-fit:cover}
+.ctitle{font-size:24px;line-height:1.05}
+.ttitle{font-size:19px;line-height:1.1}
+.ltitle{font-size:21px}
+.tag{background:transparent!important;color:var(--muted)!important;border:1px solid var(--line);border-radius:999px;font-family:Inter,sans-serif;font-weight:600;font-size:9.5px;letter-spacing:.16em;padding:3px 9px}
+/* botones */
+.primary{background:var(--ink);color:#F7F2EA;border:0;border-radius:999px;font-family:Inter,sans-serif;font-weight:500;font-size:15px;letter-spacing:.02em;min-height:52px;display:flex;align-items:center;justify-content:center;gap:8px}
+.primary svg{color:var(--gold)}
+.secondary{background:transparent;border:1px solid #CBBFB0;border-radius:999px;font-family:Inter,sans-serif;font-weight:500;font-size:14.5px;color:var(--ink);min-height:52px;display:flex;align-items:center;justify-content:center;gap:8px}
+.secondary.on{background:var(--ink);color:#F7F2EA;border-color:var(--ink)}
+.projbtn.on{background:transparent;color:var(--clay);border-color:var(--clay)}
+.chip{border-radius:999px;border:1px solid #D8CDBF;background:transparent;font-family:Inter,sans-serif;font-weight:500;font-size:13px;color:var(--ink);min-height:40px;padding:8px 15px}
+.chip.on{background:var(--ink);color:#F7F2EA;border-color:var(--ink)}
+.lbtn{border-radius:999px;border:1px solid #D8CDBF;background:transparent;font-weight:500;font-size:13.5px}
+.link,.more{color:var(--clay);font-family:Inter,sans-serif;font-weight:500;font-size:13px;letter-spacing:.04em;text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(164,87,58,.35)}
+.pill{border-radius:999px;font-family:Inter,sans-serif;font-weight:500;background:rgba(255,252,247,.92)}
+.round{background:var(--card)}.round.bordered{border:1px solid var(--line)}
+.b3d{background:var(--ink)!important;color:#F7F2EA}
+.backlink{align-self:flex-start;display:flex;align-items:center;gap:4px;border:0;background:none;padding:0;min-height:36px;margin:-6px 0 -14px -4px;font-family:Inter,sans-serif;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.backlink svg{width:18px;height:18px}
+/* buscador */
+.sbox{border:1px solid #D8CDBF;border-radius:999px;background:var(--card);padding:5px 5px 5px 16px}
+.sbox input{font-size:15px}
+.sgo{border-radius:999px;background:var(--ink);font-weight:500;padding:0 16px}
+/* proyecto en curso */
+.proj{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:22px;background:var(--card);border:1px solid var(--line);position:relative}
+.proj::after{content:'';position:absolute;inset:5px;border:1px solid rgba(184,151,90,.28);border-radius:18px;pointer-events:none}
+.projhit{display:flex;gap:14px;align-items:center;border:0;background:none;padding:0;text-align:left;width:100%;position:relative;z-index:1}
+.projart{flex:0 0 92px;height:108px;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.proj.big .projart{flex-basis:108px;height:124px}
+.projart img{width:100%;height:100%;object-fit:cover}.projart svg{width:88%;height:88%}
+.projb{display:flex;flex-direction:column;gap:6px;min-width:0}
+.projb .eyebrow{color:var(--clay);margin:0}
+.projbar{height:3px;background:var(--sand);border-radius:3px;overflow:hidden;margin-top:4px}
+.projbar span{display:block;height:100%;background:var(--clay)}
+.proj .primary{position:relative;z-index:1}
+.invite{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;padding:18px;border-style:dashed}
+.prow{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 8px}
+.prowhit{flex:1;display:flex;align-items:center;gap:12px;border:0;background:none;padding:0;text-align:left;min-width:0}
+.prowhit>span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pthumb{flex:0 0 52px;height:52px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}.pthumb img{width:100%;height:100%;object-fit:cover}
+.pt{font-size:19px;line-height:1.1}
+.mini{border:1px solid #CBBFB0;background:transparent;border-radius:999px;min-height:36px;padding:0 12px;font-size:12.5px;font-weight:500}
+.mini.ghost{border:0;color:var(--muted);padding:0 8px}
+/* claude en el inicio: sereno */
+.aimini{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:22px;background:var(--sand);border:1px solid var(--line)}
+.aimini .eyebrow{margin:0}
+.aimini textarea,.aibox textarea{width:100%;border:0;border-bottom:1px solid #CBBFB0;border-radius:0;background:transparent;color:var(--ink);padding:6px 0 10px;font:italic 400 22px/1.3 'Cormorant Garamond',Georgia,serif;resize:none;outline:none}
+.aimini textarea::placeholder,.aibox textarea::placeholder{color:#A0938A}
+.aibox{background:var(--sand);color:var(--ink);border:1px solid var(--line);border-radius:22px;padding:20px}
+.aibox .aih{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:500;line-height:1.15;margin:-2px 0 0}
+.primary.light{background:var(--ink);color:#F7F2EA}
+.secondary.dark{background:transparent;color:var(--ink);border-color:#CBBFB0}
+.chip.dk{border-color:#D3C6B6;color:var(--ink);font-size:12.5px}
+.gcard{background:var(--ink);color:#F7F2EA;border-radius:22px}
+.gcard .gtext{color:#F7F2EA;font-style:italic!important}
+/* explorar */
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.rooms button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:0;background:var(--card);padding:14px 14px 16px;min-height:96px}
+.rooms .rn{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:15px;color:var(--gold);margin-bottom:6px}
+.rooms b{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:22px;line-height:1}
+.rooms span:last-child{font-size:12px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px}
+.tile .tag{display:none}
 .grp{display:flex;flex-direction:column;gap:12px}
-.grph{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.grph h3{font-size:22px;margin:0}
-.grph span{font-size:13px;color:var(--muted)}
-.more{align-self:flex-start;border:0;background:none;color:var(--accent);font-family:Nunito,sans-serif;font-weight:700;font-size:14px;min-height:44px;padding:0}
-nav{border-top:1px solid var(--line)!important;background:rgba(255,251,245,.96)!important}
-nav button{font-family:Nunito,sans-serif;font-weight:700;color:var(--muted)!important}
-nav button.on{color:var(--accent)!important}
-.feature img{border-radius:16px}.grp .tag{display:none}
-
+.grph{display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--line);padding-top:16px}
+.grph h3{font-size:26px;margin:0}
+.grph span{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:18px;color:var(--gold)}
+.more{align-self:flex-start;border:0;background:none;min-height:40px;padding:0}
+.coll{display:flex;flex-direction:column;gap:12px;padding:12px;text-align:left;width:100%}
+.collart{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;border-radius:12px;overflow:hidden;height:110px}
+.collart span{display:flex;align-items:center;justify-content:center;overflow:hidden}.collart img{width:100%;height:100%;object-fit:cover}
+.collb{display:flex;flex-direction:column;gap:4px;padding:0 4px 4px}
+.lcard .muted{letter-spacing:.06em}
+/* mi atelier */
+.rowlink{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;text-align:left}
+.rowlink>span{display:flex;flex-direction:column;gap:2px}.rowlink b{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:21px}
+.rowlink svg{transform:rotate(180deg);color:var(--muted)}
+.pitem{border-radius:10px}.pitem.light{background:#fff;border:1px solid var(--line)}.pitem.light img{object-fit:contain}
+.empty{border:1px dashed #D3C6B6;border-radius:18px}
+/* estudio */
+.segwrap{padding:20px 22px 0;display:flex;flex-direction:column;gap:2px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--sand);border-radius:999px;padding:4px;border:1px solid var(--line)}
+.seg button{border:0;background:transparent;border-radius:999px;min-height:40px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(23,20,18,.1)}
+.segwrap+.pad{padding-top:16px}
+.segwrap+.pad>.row:first-child{display:none}
+.stagewrap{border-radius:18px}.spanel{background:var(--sand);border-radius:18px}
+.tools button.on{background:var(--ink);border-color:var(--ink)}
+/* ficha y pasos */
+.ihero{border-radius:0 0 28px 28px;overflow:hidden}
+.note{background:var(--sand);border-radius:16px;border-left:2px solid var(--gold)}
+.note .eyebrow{color:var(--clay)}
+.tip{background:var(--sand);border-radius:12px}
+.big{color:var(--clay);font-style:italic}
+.bar div,.srow.on .num,.srow.done .num{background:var(--clay)}
+.anum{background:transparent;color:var(--gold);font-style:italic;border:1px solid rgba(184,151,90,.45)}
+.feature{border-radius:22px;background:var(--card)!important;border:1px solid var(--line)}
+.shortcuts button{background:var(--card);border:1px solid var(--line);border-radius:16px}
+/* plantillas */
+button.mode{border-color:var(--line);background:var(--card);border-radius:16px}
+button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 0 1px var(--clay)}
+.plin{border-color:var(--line);background:var(--card);border-radius:12px}
+.plchk input{accent-color:var(--clay)}
+.proj .ctitle{color:var(--ink)}
+.segwrap+.pad>.eyebrow:first-child,.segwrap+.pad>.eyebrow:first-child+h1{display:none}
+/* navegación */
+nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
+nav button.on{color:var(--ink)!important}
+nav button.on::before{content:'';position:absolute;top:3px;width:4px;height:4px;border-radius:50%;background:var(--clay)}
+/* bienvenida (app instalada) */
+.splash{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 38%,#2A2320,#110E0D 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#F3ECE1;transition:opacity .6s ease}
+.splash.out{opacity:0}
+.splash .mark{margin-bottom:22px;animation:rise 1s ease both}
+.splash i{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:500;font-size:46px;line-height:1}
+.splash b{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:.42em;margin-left:.42em}
+.splash span{margin-top:16px;padding-top:12px;border-top:1px solid #C9A66B;font-size:10px;letter-spacing:.38em;color:#C9A66B}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 /* plantillas */
 .plgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
 .plf{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted,#7a6a5e)}
@@ -258,11 +344,10 @@ button.mode.on{border-color:#A4502F;background:#fbf1ea;box-shadow:inset 0 0 0 1p
 <div class="trbar bot"><label class="trl">Opacidad <input id="trop" type="range" min="10" max="100" value="60"></label><div class="trbtns"><button data-act="tr-flip">Espejar</button><button data-act="tr-inv">Invertir</button><button data-act="tr-grid">Grilla</button><button data-act="tr-reset">Centrar</button></div><span class="trhint">Un dedo mueve · dos dedos agrandan y giran · Bloqueá antes de calcar</span></div></div>
 <div id="v3" role="dialog" aria-label="Vista 3D"><header><span id="v3t"></span><button class="round" data-act="close3d" aria-label="Cerrar vista 3D"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></header><div id="v3c"></div><footer>Arrastrá para girar · pellizcá para acercar<br>Modelo orientativo de la forma, no es la pieza real</footer></div>
 <nav>
-<button data-go="home"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z"></path></svg>Inicio</button>
-<button data-go="idear"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg>Idear</button>
-<button data-go="texturas"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6c2-2 4 2 6 0s4 2 6 0 4 2 4 0"></path><path d="M4 12c2-2 4 2 6 0s4 2 6 0 4 2 4 0"></path><path d="M4 18c2-2 4 2 6 0s4 2 6 0 4 2 4 0"></path></svg>Texturas</button>
-<button data-go="estudio"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16z"></path><path d="M14 6l3 3"></path><path d="M4 20h16" stroke-dasharray="2 3"></path></svg>Estudio</button>
-<button data-go="mia"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>Mi lista</button>
+<button data-go="home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10.5L12 4l8 6.5V20"/><path d="M9.5 20v-5a2.5 2.5 0 0 1 5 0v5"/></svg><span>Inicio</span></button>
+<button data-go="explorar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Explorar</span></button>
+<button data-go="estudio"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg><span>Estudio</span></button>
+<button data-go="mia"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3.5h5c0 1.5-1.5 2-1.5 3.5 0 1.2 5.5 3 5.5 7.5 0 3.6-2.8 6-6.5 6s-6.5-2.4-6.5-6c0-4.5 5.5-6.3 5.5-7.5 0-1.5-1.5-2-1.5-3.5z"/></svg><span>Mi atelier</span></button>
 </nav>
 <script src="claude-shim.js"></script>
 <script>
@@ -1322,7 +1407,7 @@ function persist() {
         var snap = await Promise.race([DB.ref.get(), new Promise(function (r) { setTimeout(function () { r(null); }, 10000); })]);
         if (snap && snap.exists) {
           var d = snap.data() || {};
-          ['saved', 'savedGen', 'photos'].forEach(function (k) { if (Array.isArray(d[k])) STORE[k] = d[k].slice(); });
+          ['saved', 'savedGen', 'photos', 'projs'].forEach(function (k) { if (Array.isArray(d[k])) STORE[k] = d[k].slice(); }); if (typeof d.cur === 'string' || d.cur === null) STORE.cur = d.cur;
           if (d.ai && typeof d.ai === 'object') STORE.ai = JSON.parse(JSON.stringify(d.ai));
         } else if (snap) { persist(); }
       }
@@ -1345,7 +1430,7 @@ function tag(i) { return '<span class="tag" style="background:' + CAT_COLOR[i.ca
 function find(id) { return IDEAS.find(function (i) { return i.id === id; }) || TEXTURES.find(function (t) { return t.id === id; }) || TEMP[id] || STORE.ai[id]; }
 function cur() { return find(S.id) || IDEAS[0]; }
 function filtered() { return S.cat === 'todas' ? IDEAS : IDEAS.filter(function (i) { return i.cat === S.cat; }); }
-function set(p) { Object.assign(S, p); render(); if (p.screen) window.scrollTo(0, 0); }
+function set(p) { if (p.screen === 'list' && S.screen !== 'idea' && S.screen !== 'list') S.listFrom = S.screen; Object.assign(S, p); render(); if (p.screen) window.scrollTo(0, 0); }
 function newGen() { var g = {}; Object.keys(GEN).forEach(function (k) { g[k] = rnd(GEN[k].length); }); return g; }
 function genText(g) { return 'Hacé ' + GEN.objeto[g.objeto] + ' inspirado en ' + GEN.inspiracion[g.inspiracion] + ', con ' + GEN.superficie[g.superficie] + ', en ' + GEN.paleta[g.paleta] + ', hecho en ' + GEN.tecnica[g.tecnica] + '. Reto: ' + GEN.reto[g.reto] + '.'; }
 
@@ -1514,7 +1599,7 @@ function vHome() {
 
 function vList() {
   var L = LISTS.find(function (x) { return x.id === S.list; }) || LISTS[0];
-  return '<div class="pad"><div class="row"><button class="round bordered" data-go="home" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Lista curada · ' + L.ids.length + ' piezas</span></div>' +
+  return '<div class="pad"><div class="row"><button class="round bordered" data-go="' + (S.listFrom || 'home') + '" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Lista curada · ' + L.ids.length + ' piezas</span></div>' +
     '<h1>' + esc(L.t) + '</h1><p class="lead muted">' + esc(L.d) + '</p>' +
     '<div class="list">' + L.ids.map(function (id, k) { return card(find(id), k + 1); }).join('') + '</div></div>';
 }
@@ -1549,7 +1634,7 @@ function vIdea() {
     '<div><span class="eyebrow">Referentes</span><p class="sm">' + esc(i.inspiracion) + '</p></div>' +
     (i.src ? '<div class="srcbox"><span class="eyebrow">Fuentes</span>' + i.src.map(function (s) { return '<a class="src" href="' + s.u + '" target="_blank" rel="noopener">' + I.ext + '<span>' + esc(s.t) + '</span></a>'; }).join('') + '</div>' : '') +
     (i.cat === 'ia' ? '<p class="muted xs">Idea generada por Claude. Verificá los referentes con las fotos.</p>' : '') +
-    stepsBtn + '</div>';
+    stepsBtn + (i.cat !== 'tx' ? '<button class="secondary projbtn' + (STORE.cur === i.id ? ' on' : '') + '" data-act="proj">' + (STORE.cur === i.id ? '✓ Es tu proyecto en curso' : 'Elegir como proyecto en curso') + '</button>' : '') + '</div>';
 }
 
 function vPasos() {
@@ -1677,7 +1762,7 @@ document.addEventListener('click', function (e) {
   }
 });
 
-render();
+// render() al final (app9)
 (function waitThree(n) { if (window.THREE) makeThumbs(IDEAS.concat(TEXTURES)); else if (n < 100) setTimeout(function () { waitThree(n + 1); }, 100); })(0);
 
 function groupsHTML(groups) {
@@ -1715,7 +1800,7 @@ function vTextura() {
     (S.aiOk ? '<button class="secondary" data-act="tx-ideas">' + I.spark + ' Ideas de piezas con esta textura</button>' : '') + '</div>';
 }
 function vApps() {
-  return '<div class="pad"><div class="row"><button class="round bordered" data-go="home" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Dónde buscar diseños</span></div>' +
+  return '<div class="pad"><div class="row"><button class="round bordered" data-go="explorar" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Dónde buscar diseños</span></div>' +
     '<h1>Apps y sitios de inspiración</h1><p class="muted sm">Desde cada idea y textura hay botones que te llevan directo a buscarla en estas apps.</p>' +
     '<div class="list">' + APPS.map(function (a) {
       return '<div class="ref"><span class="at">' + esc(a.n) + '</span><p class="sm">' + esc(a.d) + '</p><div class="links"><a class="lbtn" href="' + a.u + '" target="_blank" rel="noopener">' + I.ext + 'Abrir</a></div>' +
@@ -1853,7 +1938,7 @@ document.addEventListener('click', function (e) {
   }
 });
 
-render();
+// render() al final (app9)
 /* ===================== v6: buscador en todas las apps ===================== */
 var SRCH = { q: '', plan: null, busy: false, local: [] };
 var CER_WORDS = /(cer[aá]mic|ceramic|pottery|porcelan|gres|stoneware|clay|arcilla|barro|esmalte|glaze|torno|wheel thrown)/i;
@@ -1928,7 +2013,7 @@ document.addEventListener('click', function (e) {
   if (b.dataset.act === 'srch-ai') return runIdeas(SRCH.q);
   if (b.dataset.copy) { var tx = b.dataset.copy; try { navigator.clipboard.writeText(tx).then(function () { b.textContent = 'Copiado'; }, function () { b.textContent = tx; }); } catch (er) { b.textContent = tx; } return; }
 });
-render();
+// render() al final (app9)
 /* ===================== v7: Estudio de diseño + recorte con IA ===================== */
 var FONTS = [['Cormorant Garamond', 'Elegante'], ['Playfair Display', 'Revista'], ['Great Vibes', 'Caligrafía'], ['Pacifico', 'Retro'], ['Bebas Neue', 'Moderna'], ['Abril Fatface', 'Lujo'], ['Caveat', 'A mano'], ['Cinzel', 'Clásica']];
 var INKS = ['#1F1B16', '#A4502F', '#2F5D62', '#2F4C8A', '#B03A48', '#C9A227', '#5E8C4A', '#FFFFFF'];
@@ -2514,6 +2599,140 @@ document.addEventListener('click', function (e) {
   if (d.plx === 'real') return openRealSize();
   if (d.plx === 'calib') return set({ screen: 'calib' });
 });
+/* ===================== v11: Maison — orden nuevo, proyectos y marca ===================== */
+var MARK_VASE = 'M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z';
+var MARK_GLAZE = 'M0,0 H100 V49 C92,49 90,52 86,52 C82,52 81,50 77,50 C72,50 71,54 71,57 C71,60 68,60 68,57 C68,53 66,51 61,51 C57,51 57,55 57,63 C57,68 53,68 53,63 C53,56 52,52 47,52 C42,52 40,50 37,50 C34,50 34,54 34,59 C34,62 31,62 31,59 C31,53 29,50 24,50 C18,50 14,52 0,52 Z';
+var markN = 0;
+function markSVG(size, night) {
+  var k = 'mk' + (markN++), clay = night ? ['#E2D8CA', '#F6F1E9', '#D9CEBF'] : ['#9E4E31', '#BE6F4A', '#93472C'], gl = night ? ['#9C7A44', '#E2C38A', '#8E6C3A'] : ['#141110', '#2A2421', '#0F0D0C'];
+  return '<svg class="mark" width="' + size + '" height="' + size + '" viewBox="14 8 72 86" aria-hidden="true"><defs><clipPath id="' + k + 'v"><path d="' + MARK_VASE + '"/></clipPath>' +
+    '<linearGradient id="' + k + 'c" x1="0" x2="1"><stop offset="0" stop-color="' + clay[0] + '"/><stop offset=".55" stop-color="' + clay[1] + '"/><stop offset="1" stop-color="' + clay[2] + '"/></linearGradient>' +
+    '<linearGradient id="' + k + 'g" x1="0" x2="1"><stop offset="0" stop-color="' + gl[0] + '"/><stop offset=".45" stop-color="' + gl[1] + '"/><stop offset="1" stop-color="' + gl[2] + '"/></linearGradient></defs>' +
+    '<path d="' + MARK_VASE + '" fill="url(#' + k + 'c)"/><g clip-path="url(#' + k + 'v)"><path d="' + MARK_GLAZE + '" fill="url(#' + k + 'g)"/><path d="M30,44 C29,52 30,62 34,72" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2.2" stroke-linecap="round"/></g>' +
+    '<path d="M38.4,13 L61.6,13" stroke="' + (night ? '#F1D9A6' : '#C9A66B') + '" stroke-width="2" stroke-linecap="round"/></svg>';
+}
+function wordmark(small) {
+  return '<div class="wm' + (small ? ' sm' : '') + '">' + markSVG(small ? 26 : 34) + '<span class="wmt"><i>Atelier</i><b>GUADI</b></span></div>';
+}
+
+/* ---------- proyectos ---------- */
+if (!Array.isArray(STORE.projs)) { STORE.projs = [{ id: 'lata', step: 0 }]; STORE.cur = 'lata'; }
+function projOf(id) { return STORE.projs.find(function (p) { return p.id === id; }); }
+function projCur() { var p = projOf(STORE.cur); return p && find(p.id) ? p : null; }
+function projCard(p, big) {
+  var i = find(p.id); if (!i) return '';
+  var n = (i.steps || []).length, k = Math.min(p.step || 0, Math.max(0, n - 1));
+  return '<div class="proj' + (big ? ' big' : '') + '"><button class="projhit" data-open="' + i.id + '" aria-label="Abrir ' + esc(i.title) + '"><span class="projart" style="background:' + i.bg + '">' + art(i, big ? 120 : 76) + '</span>' +
+    '<span class="projb"><span class="eyebrow">Proyecto en curso</span><span class="ctitle">' + esc(i.title) + '</span>' +
+    (n ? '<span class="projbar"><span style="width:' + Math.round((k + 1) / n * 100) + '%"></span></span><span class="muted xs">Paso ' + (k + 1) + ' de ' + n + ' · ' + esc(i.steps[k].t) + '</span>' : '<span class="muted xs">Todavía sin paso a paso</span>') + '</span></button>' +
+    (n ? '<button class="primary" data-proj-go="' + i.id + '">Seguir con el paso ' + (k + 1) + '</button>' : '') + '</div>';
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return; var d = b.dataset;
+  if (d.projGo) { var p = projOf(d.projGo); S.back = S.screen; S.from = S.screen; return set({ screen: 'pasos', id: d.projGo, step: p ? p.step || 0 : 0 }); }
+  if (d.projSet) { if (!projOf(d.projSet)) STORE.projs.unshift({ id: d.projSet, step: 0 }); STORE.cur = d.projSet; persist(); return render(); }
+  if (d.projDel) { STORE.projs = STORE.projs.filter(function (p) { return p.id !== d.projDel; }); if (STORE.cur === d.projDel) STORE.cur = STORE.projs[0] ? STORE.projs[0].id : null; persist(); return render(); }
+  if (d.act === 'proj') { var id = S.id; if (STORE.cur === id) { STORE.cur = null; } else { if (!projOf(id)) STORE.projs.unshift({ id: id, step: 0 }); STORE.cur = id; } persist(); return render(); }
+});
+
+/* ---------- inicio: poco y claro ---------- */
+function vHome() {
+  var p = projCur(), h = new Date().getHours(), hi = h < 13 ? 'Buen día' : (h < 20 ? 'Buenas tardes' : 'Buenas noches');
+  return '<div class="pad home">' +
+    '<header class="top">' + wordmark() + '</header>' +
+    '<div class="hello"><span class="eyebrow">' + hi + ', Guadi</span><h1>¿Qué creamos <em>hoy</em>?</h1></div>' +
+    searchBox('') +
+    (p ? projCard(p, true) : '<button class="invite" data-go="mia"><span class="eyebrow">Proyecto en curso</span><span class="ctitle">Elegí en qué estás trabajando</span><span class="muted xs">Abrí cualquier idea y tocá “Elegir como proyecto en curso”.</span></button>') +
+    (S.aiOk ? '<div class="aimini"><span class="eyebrow">' + I.spark + ' Idear con Claude</span><textarea id="aiq" rows="2" placeholder="Contame qué tenés ganas de hacer…"></textarea>' +
+      '<div class="two"><button class="primary" data-act="ai">Pedir ideas</button><button class="secondary" data-act="aiphoto">' + I.cam + ' Desde una foto</button></div></div>' : '') +
+    '<section><div class="between"><span class="eyebrow">Colecciones</span><button class="link" data-go="colecciones">Ver todas</button></div><div class="hscroll">' + LISTS.map(listCover).join('') + '</div></section>' +
+    '</div>';
+}
+
+/* ---------- explorar: todo el catálogo ordenado ---------- */
+var ROOMS = [
+  ['colecciones', 'Colecciones', 'Listas curadas'], ['texturas', 'Texturas', 'Técnicas de superficie'], ['idear', 'Disparador', 'Una idea al azar'],
+  ['referentes', 'Referentes', 'Casas y artistas'], ['apps', 'Dónde buscar', 'Apps de inspiración'], ['proceso', 'Guía de taller', 'De la arcilla al horno']
+];
+var ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+function vExplorar() {
+  var cats = CATS.filter(function (c) { return c.id !== 'todas'; });
+  var chips = CATS.map(function (c) { return '<button class="chip' + (c.id === S.cat ? ' on' : '') + '" data-cat="' + c.id + '">' + (c.id === 'todas' ? 'Todo' : c.label) + '</button>'; }).join('');
+  S.og = S.og || {};
+  var groups = cats.filter(function (c) { return S.cat === 'todas' || c.id === S.cat; }).map(function (c) {
+    var items = IDEAS.filter(function (i) { return i.cat === c.id; }); if (!items.length) return '';
+    var open = S.cat !== 'todas' || S.og[c.id] === true, show = open ? items : items.slice(0, 4);
+    return '<section class="grp"><div class="grph"><h3>' + esc(c.label) + '</h3><span>' + items.length + '</span></div><div class="tiles">' + show.map(tile).join('') + '</div>' +
+      (S.cat === 'todas' && items.length > 4 ? '<button class="more" data-og="' + c.id + '">' + (open ? 'Ver menos' : 'Ver las ' + items.length) + '</button>' : '') + '</section>';
+  }).join('');
+  return '<div class="pad"><span class="eyebrow">Inspiración</span><h1>Explorar</h1>' + searchBox('') +
+    '<div class="rooms">' + ROOMS.map(function (r, k) { return '<button data-go="' + r[0] + '"><span class="rn">' + ROMAN[k] + '</span><b>' + r[1] + '</b><span>' + r[2] + '</span></button>'; }).join('') + '</div>' +
+    '<div class="between"><span class="eyebrow" style="margin:0">Ideas · ' + IDEAS.length + '</span></div><div class="chips">' + chips + '</div>' + groups + '</div>';
+}
+document.addEventListener('click', function (e) { var b = e.target.closest('[data-og]'); if (!b) return; S.og = S.og || {}; S.og[b.dataset.og] = !S.og[b.dataset.og]; render(); });
+function vColecciones() {
+  return '<div class="pad"><span class="eyebrow">Listas curadas</span><h1>Colecciones</h1><div class="list">' + LISTS.map(function (L) {
+    var its = L.ids.slice(0, 3).map(find).filter(Boolean);
+    return '<button class="coll" data-list="' + L.id + '"><span class="collart">' + its.map(function (i) { return '<span style="background:' + i.bg + '">' + art(i, 70) + '</span>'; }).join('') + '</span><span class="collb"><span class="ctitle">' + esc(L.t) + '</span><span class="muted xs">' + esc(L.d) + '</span><span class="eyebrow" style="margin:6px 0 0">' + L.ids.length + ' piezas</span></span></button>';
+  }).join('') + '</div></div>';
+}
+
+/* ---------- mi atelier ---------- */
+function vMia() {
+  var p = projCur(), others = STORE.projs.filter(function (x) { return x.id !== STORE.cur && find(x.id); });
+  var list = IDEAS.filter(function (i) { return STORE.saved.indexOf(i.id) >= 0; }).concat(Object.keys(STORE.ai).map(function (k) { return STORE.ai[k]; }));
+  var canPhoto = S.assetsOk || window.__STANDALONE;
+  var proj = '<section>' + (p ? projCard(p, true) : '<span class="eyebrow">Proyecto en curso</span><p class="muted sm">No hay ninguno elegido. Elegí uno de abajo o abrí cualquier idea y tocá “Elegir como proyecto en curso”.</p>') + '</section>' +
+    (others.length ? '<section><span class="eyebrow">Otros proyectos</span><div class="list tight">' + others.map(function (x) {
+      var i = find(x.id), n = (i.steps || []).length;
+      return '<div class="prow"><button class="prowhit" data-open="' + i.id + '"><span class="pthumb" style="background:' + i.bg + '">' + art(i, 52) + '</span><span><span class="pt">' + esc(i.title) + '</span><span class="muted xs">' + (n ? 'Paso ' + ((x.step || 0) + 1) + ' de ' + n : 'Sin paso a paso') + '</span></span></button>' +
+        '<button class="mini" data-proj-set="' + i.id + '">En curso</button><button class="mini ghost" data-proj-del="' + i.id + '" aria-label="Quitar ' + esc(i.title) + '">✕</button></div>';
+    }).join('') + '</div></section>' : '');
+  var saved = '<section><span class="eyebrow">Guardadas · ' + list.length + '</span>' + (list.length ? '<div class="tiles">' + list.map(tile).join('') + '</div>' : '<p class="muted sm">Tocá «Guardar» en cualquier idea para tenerla acá.</p>') + '</section>';
+  var photos = '<section><div class="between"><span class="eyebrow">Mis fotos</span>' + (canPhoto ? '<button class="link" data-act="addphoto">+ Subir</button>' : '') + '</div>' +
+    (STORE.photos.length ? '<div class="pgrid">' + STORE.photos.map(function (ph, k) { return '<button class="pitem" data-photo="' + k + '"><img src="' + esc(ph.url) + '" alt=""></button>'; }).join('') + '</div>' : '<p class="muted sm">' + (canPhoto ? 'Subí fotos de tus piezas o de lo que te inspira. Tocá una para pedirle ideas a Claude.' : 'Para subir fotos hace falta permiso de edición en esta página.') + '</p>') + '</section>';
+  var dz = (STORE.designs || []).length ? '<section><span class="eyebrow">Mis diseños</span><div class="pgrid">' + STORE.designs.map(function (x) { return '<div class="pitem light"><img src="' + esc(x.url) + '" alt="Diseño guardado"></div>'; }).join('') + '</div></section>' : '';
+  var gens = STORE.savedGen.length ? '<section><span class="eyebrow">Disparadores</span><div class="list tight">' + STORE.savedGen.map(function (t, idx) { return '<div class="ref"><p class="sm">' + esc(t) + '</p><button class="lbtn" data-delgen="' + idx + '">Quitar</button></div>'; }).join('') + '</div></section>' : '';
+  return '<div class="pad"><span class="eyebrow">Tu espacio</span><h1>Mi atelier</h1>' + proj + saved + photos + dz + gens +
+    '<button class="rowlink" data-go="proceso"><span><b>Guía de taller</b><span class="muted xs">Etapas, secado y cocción</span></span>' + I.back + '</button></div>';
+}
+
+/* ---------- estudio: tres herramientas ---------- */
+function studioTabs(on) {
+  return '<div class="seg" role="tablist">' + [['estudio', 'Diseñar'], ['calcar', 'Calcar'], ['plantilla', 'Plantilla']].map(function (t) { return '<button role="tab" aria-selected="' + (on === t[0]) + '" class="' + (on === t[0] ? 'on' : '') + '" data-go="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
+}
+
+/* ---------- render con el orden nuevo ---------- */
+var SUBS = { texturas: 'explorar', referentes: 'explorar', apps: 'explorar', proceso: null, idear: 'explorar', colecciones: null };
+function render() {
+  var v = { home: vHome, explorar: vExplorar, colecciones: vColecciones, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte, plantilla: vPlantilla, calib: vCalib }[S.screen] || vHome;
+  var keep = {}, act = document.activeElement && document.activeElement.id;
+  ['aiq', 'sq', 'trq'].forEach(function (k) { var el = document.getElementById(k); if (el && el.value) keep[k] = el.value; });
+  var html = v();
+  var tab = { idea: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', pasos: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', list: 'explorar', colecciones: 'explorar', ai: 'home', textura: 'explorar', texturas: 'explorar', apps: 'explorar', buscar: 'explorar', referentes: 'explorar', proceso: S.from === 'mia' ? 'mia' : 'explorar', idear: 'explorar', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio' }[S.screen] || S.screen;
+  if (['estudio', 'calcar', 'plantilla'].indexOf(S.screen) >= 0) html = '<div class="segwrap"><span class="eyebrow">Estudio</span>' + studioTabs(S.screen) + '</div>' + html;
+  if (['texturas', 'referentes', 'idear', 'colecciones', 'proceso'].indexOf(S.screen) >= 0) html = html.replace('<div class="pad">', '<div class="pad"><button class="backlink" data-go="' + (tab === 'mia' ? 'mia' : 'explorar') + '">' + I.back + (tab === 'mia' ? 'Mi atelier' : 'Explorar') + '</button>');
+  document.getElementById('main').innerHTML = html;
+  Object.keys(keep).forEach(function (k) { var el = document.getElementById(k); if (el && !el.value) el.value = keep[k]; });
+  if (act && ['aiq', 'sq', 'trq'].indexOf(act) >= 0) { var fe = document.getElementById(act); if (fe) { fe.focus(); try { fe.setSelectionRange(fe.value.length, fe.value.length); } catch (e) {} } }
+  document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-go') === tab); });
+  if (S.screen === 'estudio' && typeof drawStage === 'function') { stageGestures(); drawStage(); }
+  if (S.screen === 'recorte' && typeof drawCut === 'function') setTimeout(drawCut, 0);
+  if (S.screen === 'plantilla' && typeof drawPlPreview === 'function') setTimeout(drawPlPreview, 0);
+  if (S.screen === 'pasos') { var pj = projOf(S.id); if (pj && pj.step !== S.step) { pj.step = S.step; persist(); } }
+}
+
+/* pantalla de bienvenida al abrir la app instalada */
+(function splash() {
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+  var seen = false; try { seen = sessionStorage.getItem('splash') === '1'; sessionStorage.setItem('splash', '1'); } catch (e) {}
+  if (!standalone || seen) return;
+  var d = document.createElement('div'); d.className = 'splash';
+  d.innerHTML = markSVG(120, true) + '<i>Atelier</i><b>GUADI</b><span>CERÁMICA DE AUTOR</span>';
+  document.body.appendChild(d);
+  setTimeout(function () { d.classList.add('out'); setTimeout(function () { d.remove(); }, 700); }, 1300);
+})();
+render();
 </script>
 </body>
 </html>

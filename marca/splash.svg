@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><defs><radialGradient id="bgS" cx=".5" cy=".4" r=".8"><stop offset="0" stop-color="#2A2320"/><stop offset="1" stop-color="#110E0D"/></radialGradient></defs>
+<rect width="1080" height="1920" fill="url(#bgS)"/>
+<g transform="translate(310,560) scale(4.6)">
+<defs><clipPath id="vs"><path d="M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z"/></clipPath>
+<linearGradient id="cs" x1="0" x2="1"><stop offset="0" stop-color="#E2D8CA"/><stop offset=".55" stop-color="#F6F1E9"/><stop offset="1" stop-color="#D9CEBF"/></linearGradient>
+<linearGradient id="gs" x1="0" x2="1"><stop offset="0" stop-color="#9C7A44"/><stop offset=".45" stop-color="#E2C38A"/><stop offset="1" stop-color="#8E6C3A"/></linearGradient></defs>
+<path d="M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z" fill="url(#cs)"/>
+<g clip-path="url(#vs)"><path d="M0,0 H100 V49 C92,49 90,52 86,52 C82,52 81,50 77,50 C72,50 71,54 71,57 C71,60 68,60 68,57 C68,53 66,51 61,51 C57,51 57,55 57,63 C57,68 53,68 53,63 C53,56 52,52 47,52 C42,52 40,50 37,50 C34,50 34,54 34,59 C34,62 31,62 31,59 C31,53 29,50 24,50 C18,50 14,52 0,52 Z" fill="url(#gs)"/>
+<path d="M30,44 C29,52 30,62 34,72" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="2.2" stroke-linecap="round"/></g>
+<path d="M38.4,13 L61.6,13" stroke="#F1D9A6" stroke-width="1.8" stroke-linecap="round"/>
+</g>
+<text x="540" y="1100" text-anchor="middle" font-family="Cormorant Garamond" font-style="italic" font-weight="500" font-size="120" fill="#F3ECE1">Atelier</text>
+<text x="555" y="1210" text-anchor="middle" font-family="Cormorant Garamond" font-weight="600" font-size="84" letter-spacing="30" fill="#F3ECE1">GUADI</text>
+<line x1="470" y1="1268" x2="610" y2="1268" stroke="#C9A66B" stroke-width="2"/>
+<text x="548" y="1330" text-anchor="middle" font-family="Inter, DejaVu Sans" font-weight="500" font-size="26" letter-spacing="10" fill="#C9A66B">CERÁMICA DE AUTOR</text></svg>
