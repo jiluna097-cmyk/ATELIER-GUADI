@@ -32,3 +32,10 @@ Cuidado: cualquiera que tenga el link puede usar la IA y eso consume tu crédito
 - `netlify/functions/claude.mjs` — función que llama a la API de Claude
 - `netlify.toml` — configuración de Netlify
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png` — ícono para el celular
+
+
+## Fotos reales (fotos.mjs)
+En la ficha de cada idea, la app busca fotos reales en la web con la herramienta de búsqueda de Claude y muestra la foto principal de cada página, con link a la fuente.
+- Usa la misma ANTHROPIC_API_KEY. Cada búsqueda web se cobra aparte (alrededor de USD 10 cada 1000 búsquedas) más los tokens; la app hace 1 o 2 búsquedas por pieza y guarda el resultado en el teléfono para no repetir.
+- Si la consola de Anthropic tiene la búsqueda web desactivada, activala en Settings → Privacy (o la función devuelve error y la app muestra los links a Google y Pinterest).
+- Solo funciona en Netlify: dentro de claude.ai las páginas no pueden mostrar imágenes de otros sitios.

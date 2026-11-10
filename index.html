@@ -314,6 +314,17 @@ button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 
 .mdrow b{font-weight:600;font-size:14px}
 .cutwrap canvas{width:100%;height:auto;border-radius:14px;display:block;background:#fff}
 .tinput{width:100%;border:0;border-bottom:1px solid #CBBFB0;background:transparent;font:italic 400 21px 'Cormorant Garamond',Georgia,serif;padding:6px 0 8px;outline:none;color:var(--ink)}
+.rphotos{display:flex;gap:10px;overflow-x:auto;margin:0 -22px 8px;padding:2px 22px 6px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.rph{flex:0 0 62%;aspect-ratio:4/5;border:0;padding:0;border-radius:16px;overflow:hidden;position:relative;background:var(--sand);scroll-snap-align:start}
+.rph img{width:100%;height:100%;object-fit:cover;display:block}
+.rph span{position:absolute;left:8px;bottom:8px;background:rgba(23,20,18,.72);color:#F7F2EA;font-size:11px;padding:3px 9px;border-radius:999px;letter-spacing:.04em}
+.rph.skel{background:linear-gradient(90deg,var(--sand),#F6F0E7,var(--sand));background-size:200% 100%;animation:sk 1.2s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.lbox{position:fixed;inset:0;z-index:9000;background:rgba(17,14,13,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 14px 20px;gap:14px}
+.lbox img{max-width:100%;max-height:72vh;border-radius:12px;object-fit:contain}
+.lbx{position:absolute;top:12px;right:12px}
+.lbcap{display:flex;flex-direction:column;align-items:center;gap:10px;color:#EDE5D9;font-size:13px;text-align:center}
+.lbcap .lbtn{background:#F7F2EA;color:#171412}
 /* navegación */
 nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
@@ -1441,6 +1452,8 @@ function gimg(q) { return 'https://www.google.com/search?tbm=isch&q=' + encodeUR
 function pin(q) { return 'https://www.pinterest.com/search/pins/?q=' + encodeURIComponent(q); }
 function hex(c, d) { return /^#[0-9a-f]{6}$/i.test(c || '') ? c : d; }
 function art(i, size) {
+  var rt = typeof realThumb === 'function' ? realThumb(i) : '';
+  if (rt) return '<img src="' + esc(rt) + '" width="' + size + '" height="' + size + '" alt="" referrerpolicy="no-referrer" style="object-fit:cover;width:100%;height:100%" onerror="this.remove()">';
   if (THUMB[i.id]) return '<img src="' + THUMB[i.id] + '" width="' + size + '" height="' + size + '" alt="" style="object-fit:contain">';
   return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 120 120" aria-hidden="true"><ellipse cx="60" cy="104" rx="34" ry="5" fill="#000" fill-opacity="0.08"></ellipse><path d="' + (SHAPES[i.shape] || SHAPES.cuenco) + '" fill="' + i.glaze + '"></path></svg>';
 }
@@ -1530,7 +1543,7 @@ async function runIdeas(pedido, blob, photoUrl) {
     });
     if (!items.length) throw { code: 'empty' };
     S.ai = { pedido: pedido || 'Ideas desde tu foto', photo: photoUrl || null, titulo: String(v.titulo || 'Ideas para vos'), descripcion: String(v.descripcion || ''), items: items };
-    makeThumbs(items);
+    makeThumbs(items); if (typeof prefetchFotos === 'function') prefetchFotos(items);
   } catch (e) {
     S.ai = { error: e && e.code === 'no_images' ? 'En este dispositivo no se pueden enviar fotos a Claude. Probá escribiendo qué te inspira.' : aiError(e), pedido: pedido };
   }
@@ -1646,7 +1659,7 @@ function vIdea() {
     '<button class="pill tr" data-act="save">' + I.bm(saved) + (saved ? 'Guardada' : 'Guardar') + '</button>' +
     art(i, 230) + '<button class="pill b3d" data-act="3d">' + I.cube + 'Ver en 3D</button></div>' +
     '<div class="pad">' + tag(i) + '<h2>' + esc(i.title) + '</h2><p class="lead">' + esc(i.pitch) + '</p>' +
-    '<div><span class="eyebrow">Fotos reales de referencia</span>' + photoBtns(i.q, i.q2) + '</div>' + appsRow(i.q) +
+    (typeof realBlock === 'function' ? realBlock(i) : '<div><span class="eyebrow">Fotos reales de referencia</span>' + photoBtns(i.q, i.q2) + '</div>') + appsRow(i.q) +
     '<div class="note"><span class="eyebrow">Por qué inspira</span><span>' + esc(i.why) + '</span></div>' +
     '<div class="grid">' + ficha + '</div>' +
     '<div><span class="eyebrow">Referentes</span><p class="sm">' + esc(i.inspiracion) + '</p></div>' +
@@ -3162,6 +3175,51 @@ document.addEventListener('click', function (e) {
   if (d.mdx === 'pdf') { MD.busy = true; MD.msg = ''; render(); mdPDF().catch(function (er) { MD.msg = er && er.code === 'declined' ? '' : 'No se pudo generar el PDF. Probá de nuevo.'; }).then(function () { MD.busy = false; render(); }); return; }
   if (d.mdx === 'svg') { mdSVG().catch(function (er) { if (!(er && er.code === 'declined')) { MD.msg = 'No se pudo descargar el SVG.'; render(); } }); return; }
 });
+/* ===================== v13: fotos reales de referencia (versión Netlify) ===================== */
+var FOTOS = {}; try { FOTOS = JSON.parse(localStorage.getItem('fotos_v1') || '{}') || {}; } catch (e) {}
+var FOTOS_BUSY = {};
+function fotosSave() { try { var k = Object.keys(FOTOS); if (k.length > 80) k.slice(0, k.length - 80).forEach(function (x) { delete FOTOS[x]; }); localStorage.setItem('fotos_v1', JSON.stringify(FOTOS)); } catch (e) {} }
+function realThumb(i) { var f = FOTOS[i.id]; return i.cat === 'ia' && f && f.items && f.items[0] ? f.items[0].img : ''; }
+async function realPhotos(i, force) {
+  if (!window.__STANDALONE || !i || FOTOS_BUSY[i.id] || (FOTOS[i.id] && !force)) return;
+  FOTOS_BUSY[i.id] = true; rerenderFotos(i.id);
+  try {
+    var r = await fetch('/.netlify/functions/fotos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: i.q || i.title, titulo: i.title, ref: i.referente || i.inspiracion || '' }) });
+    if (!r.ok) throw r.status;
+    var pages = ((await r.json()).pages || []).slice(0, 9);
+    var got = await Promise.all(pages.map(function (p) {
+      return fetch('/.netlify/functions/fotos?u=' + encodeURIComponent(p.url)).then(function (x) { return x.json(); }).then(function (x) { return x && x.img ? { img: x.img, page: x.page || p.url, site: x.site || '', title: x.title || p.title } : null; }).catch(function () { return null; });
+    }));
+    var seen = {}, items = got.filter(function (x) { if (!x || seen[x.img] || /logo|favicon|sprite|placeholder/i.test(x.img)) return false; seen[x.img] = 1; return true; }).slice(0, 6);
+    FOTOS[i.id] = { items: items, at: Date.now() }; fotosSave();
+  } catch (e) { FOTOS[i.id] = { items: [], err: true, at: Date.now() }; }
+  FOTOS_BUSY[i.id] = false; rerenderFotos(i.id);
+}
+function rerenderFotos(id) { if ((S.screen === 'idea' && S.id === id) || S.screen === 'ai') render(); }
+function realBlock(i) {
+  var links = photoBtns(i.q, i.q2);
+  if (!window.__STANDALONE) return '<div><span class="eyebrow">Fotos reales de referencia</span>' + links + '</div>';
+  var f = FOTOS[i.id], busy = FOTOS_BUSY[i.id], body;
+  if (busy || !f) { body = '<div class="rphotos">' + [0, 1, 2].map(function () { return '<span class="rph skel"></span>'; }).join('') + '</div><p class="muted xs">Buscando fotos reales en la web…</p>'; if (!busy && !f) setTimeout(function () { realPhotos(i); }, 0); }
+  else if (f.items.length) body = '<div class="rphotos">' + f.items.map(function (x, k) { return '<button class="rph" data-rph="' + k + '" aria-label="Ver foto de ' + esc(x.site) + '"><img src="' + esc(x.img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"><span>' + esc(x.site) + '</span></button>'; }).join('') + '</div>' +
+    '<p class="muted xs">Fotos de la web de piezas iguales o parecidas' + (i.cat === 'ia' ? ' (esta idea es nueva, así que son referencias cercanas)' : '') + '. Tocá una para verla grande.</p>';
+  else body = '<p class="muted sm">No encontré fotos en la web esta vez.</p><button class="link" data-rpagain="1">Buscar de nuevo</button>';
+  return '<div><span class="eyebrow">Fotos reales</span>' + body + links + '</div>';
+}
+function rphOpen(k) {
+  var f = FOTOS[S.id]; if (!f || !f.items[k]) return; var x = f.items[k];
+  var d = document.createElement('div'); d.className = 'lbox'; d.setAttribute('role', 'dialog');
+  d.innerHTML = '<button class="round lbx" aria-label="Cerrar">✕</button><img src="' + esc(x.img) + '" alt="" referrerpolicy="no-referrer"><div class="lbcap"><span>' + esc(x.title || '') + '</span><a class="lbtn" href="' + esc(x.page) + '" target="_blank" rel="noopener">' + I.ext + ' Ver en ' + esc(x.site || 'la página') + '</a></div>';
+  d.addEventListener('click', function (e) { if (e.target === d || e.target.closest('.lbx')) d.remove(); });
+  document.body.appendChild(d);
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rph) return rphOpen(+b.dataset.rph);
+  if (b.dataset.rpagain) { delete FOTOS[S.id]; return realPhotos(cur(), true); }
+});
+/* al crear ideas con Claude, buscar la foto de cada una en segundo plano */
+async function prefetchFotos(items) { if (!window.__STANDALONE) return; for (var k = 0; k < items.length; k++) { await realPhotos(items[k]); } }
 /* ===================== v11: Maison — orden nuevo, proyectos y marca ===================== */
 var MARK_VASE = 'M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z';
 var MARK_GLAZE = 'M0,0 H100 V49 C92,49 90,52 86,52 C82,52 81,50 77,50 C72,50 71,54 71,57 C71,60 68,60 68,57 C68,53 66,51 61,51 C57,51 57,55 57,63 C57,68 53,68 53,63 C53,56 52,52 47,52 C42,52 40,50 37,50 C34,50 34,54 34,59 C34,62 31,62 31,59 C31,53 29,50 24,50 C18,50 14,52 0,52 Z';
