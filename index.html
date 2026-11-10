@@ -329,6 +329,26 @@ button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 
 .dprev{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;justify-content:center}.dprev img{max-width:100%;max-height:220px}
 .patbox{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
 .patmots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.patm{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:11.5px}.patm img{width:34px;height:34px}.patm.on{border-color:var(--clay);box-shadow:inset 0 0 0 1px var(--clay)}
+.studio{gap:18px}
+.stephead{display:flex;align-items:center;gap:12px;margin-top:6px}
+.stephead>span:last-child{display:flex;flex-direction:column;gap:1px}.stephead b{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:24px;line-height:1.05}
+.stepn{flex:0 0 32px;height:32px;border-radius:50%;border:1px solid var(--gold);color:var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:18px}
+.sources{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sources button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:72px;border:1px solid var(--line);border-radius:16px;background:var(--card);font-size:13px;font-weight:500}
+.sources button b{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:500;line-height:1}
+.sources button.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.pchips{display:flex;gap:6px;overflow-x:auto;margin:0 -22px;padding:0 22px 2px;scrollbar-width:none}
+.pchip{flex:0 0 auto;border:1px solid #D8CDBF;background:transparent;border-radius:999px;min-height:38px;padding:0 14px;font-size:13px;font-weight:500}
+.pchip.on{background:var(--ink);color:#F7F2EA;border-color:var(--ink)}
+.live{position:relative;border-radius:20px;overflow:hidden;background:var(--sand);aspect-ratio:1/1}
+.live img{width:100%;height:100%;object-fit:cover;display:block}.live.empty img{visibility:hidden}
+.live .pill{position:absolute;right:12px;bottom:12px;background:var(--ink);color:#F7F2EA}
+.inks.glz{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.dot.sm{width:28px;height:28px}
+.outs{display:flex;flex-direction:column;gap:8px}
+.outs button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.outs button b{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:21px}.outs button span{font-size:12.5px;color:var(--muted)}
+.outs button:first-child{background:var(--ink);border-color:var(--ink);color:#F7F2EA}.outs button:first-child span{color:#CFC4B6}
+.advbox{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px dashed #D3C6B6;border-radius:16px}
 /* navegación */
 nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
@@ -3322,6 +3342,7 @@ function vMotivos() {
     '<h1>Buscar un <em>dibujo</em></h1>' +
     '<form class="sbox" data-motform="1"><input id="motq" type="search" enterkeyhint="search" placeholder="Ej: colibrí, limón, ola, cardón" value="' + esc(MOT.q) + '" aria-label="Qué querés dibujar"><button class="sgo" type="submit">Buscar</button></form>' +
     '<section><span class="eyebrow">Copiar un diseño que viste</span><p class="muted sm">¿Viste un diseño que te gusta en Pinterest o Instagram? Hacele captura de pantalla y subila: lo paso a líneas limpias para calcar.</p><button class="secondary" data-motcopy="1">' + I.photo + ' Subir captura o foto</button></section>' +
+    (!MOT.q ? '<section><span class="eyebrow">Clásicos para cerámica</span><div class="artgrid">' + LINEART.map(function (l) { return '<button class="artbtn" data-motart="' + l[0] + '"><img src="' + svgURL(lineArt(l[0])) + '" alt=""><span>' + l[1] + '</span></button>'; }).join('') + '</div></section>' : '') +
     (MOT.q ? '<section><span class="eyebrow">Motivos listos' + (res.length ? ' · ' + res.length : '') + '</span>' +
       (MOT.loading ? '<p class="muted sm">Cargando biblioteca…</p>' : (res.length ? '<div class="artgrid">' + res.map(function (it, k) { return '<button class="artbtn" data-motlib="' + k + '"><img src="' + svgURL(motSVG(it[2])) + '" alt=""><span>' + esc(it[0].replace(/-/g, ' ')) + '</span></button>'; }).join('') + '</div>' : '<p class="muted sm">No hay motivos listos para eso. Probá con Claude.</p>')) + '</section>' : '') +
     (S.aiOk ? '<section class="aimini"><span class="eyebrow">' + I.spark + ' Que lo dibuje Claude</span><div class="chips tight">' + styles + '</div>' +
@@ -3342,6 +3363,7 @@ document.addEventListener('click', function (e) {
   if (d.motai) { MOT.q = ((document.getElementById('motq') || {}).value || MOT.q).trim(); return motAI(); }
   if (d.motlib) { var it = motSearch(MOT.q)[+d.motlib]; if (it) return motUse(motSVG(it[2]), motName(it[0])); }
   if (d.motpick) { return motUse(MOT.ai[+d.motpick], MOT.q || 'Dibujo'); }
+  if (d.motart) { var la = LINEART.find(function (l) { return l[0] === d.motart; }); return motUse(lineArt(d.motart), la ? la[1] : 'Dibujo'); }
   if (d.motcopy) { return startCut(MOT.target); }
 });
 /* ===================== v13: usar el diseño que trae cada pieza ===================== */
@@ -3450,6 +3472,116 @@ document.addEventListener('input', function (e) {
   if (d.pat) { var v = parseFloat(String(e.target.value).replace(',', '.')); if (isNaN(v)) return; P[d.pat] = v; plSave(); clearTimeout(PL.t); PL.t = setTimeout(drawPlPreview, 150); }
   if (d.patr) { P[d.patr] = +e.target.value; var lv = document.getElementById('patrotv'); if (lv) lv.textContent = P.rot + '°'; plSave(); clearTimeout(PL.t); PL.t = setTimeout(drawPlPreview, 80); }
 });
+/* ===================== v14: Estudio simple en 3 pasos, con la pieza en 3D siempre a la vista ===================== */
+var TRY_TO_PL = { taza: 'cil', lata: 'lata', vaso: 'cono', plato: 'plato', cuenco: 'plato', jarron: 'cil', jarra: 'cil', botella: 'cil' };
+var LIVE = { url: '', t: 0, key: '' };
+/* foto 3D de la pieza con el diseño, se actualiza sola */
+function live3D() {
+  var T = window.THREE; if (!T || !ST.layers.length) { LIVE.url = ''; return paintLive(); }
+  try {
+    if (!V3.tr) { V3.tr = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); V3.tr.setPixelRatio(1); V3.tr.outputEncoding = T.sRGBEncoding; V3.tr.toneMapping = T.ACESFilmicToneMapping; V3.tcam = new T.PerspectiveCamera(32, 1, .01, 100); }
+    V3.tr.setSize(480, 480);
+    var i = makeTryIdea(); i.bg = '#EDE5D9';
+    V3.tr.setClearColor(i.bg, 1); var sc = v3scene(T, V3.tr), o = v3build(T, i); o.rotation.set(tiltFor(i), -.35, 0); sc.add(o);
+    V3.tcam.aspect = 1; V3.tcam.updateProjectionMatrix(); V3.tcam.position.set(0, 0, o.userData.size * 1.7); V3.tcam.lookAt(0, 0, 0);
+    V3.tr.render(sc, V3.tcam); LIVE.url = V3.tr.domElement.toDataURL('image/jpeg', .88);
+    sc.traverse(function (x) { if (x.geometry) x.geometry.dispose(); if (x.material && x.material.map) x.material.map.dispose(); });
+    V3.tr.setSize(360, 360);
+  } catch (e) { LIVE.url = ''; }
+  paintLive();
+}
+function paintLive() { var im = document.getElementById('live3d'); if (im) { if (LIVE.url) { im.src = LIVE.url; im.parentNode.classList.remove('empty'); } else im.parentNode.classList.add('empty'); } }
+function scheduleLive() { clearTimeout(LIVE.t); LIVE.t = setTimeout(live3D, 350); }
+function drawStage() {
+  var c = document.getElementById('stage'); if (!c) return;
+  var g = c.getContext('2d'); g.clearRect(0, 0, SW, SW);
+  paintLayers(g, { sel: true }); scheduleLive();
+}
+
+function stepHead(n, t, sub) { return '<div class="stephead"><span class="stepn">' + n + '</span><span><b>' + t + '</b>' + (sub ? '<span class="muted xs">' + sub + '</span>' : '') + '</span></div>'; }
+function vEstudio() {
+  var P = ST.panel, panel = '', has = ST.layers.length > 0;
+  if (P === 'texto') panel = '<div class="spanel"><input id="txtin" class="tinput" placeholder="Escribí: Guadi, una fecha, una frase" maxlength="40">' +
+    '<div class="fontgrid">' + FONTS.map(function (f) { return '<button class="fbtn' + (ST.font === f[0] ? ' on' : '') + '" data-font="' + f[0] + '" style="font-family:\'' + f[0] + '\'">Aa<span>' + f[1] + '</span></button>'; }).join('') + '</div>' +
+    '<label class="sm">Curvar <input id="tcurve" type="range" min="-100" max="100" value="' + ST.curve + '"></label>' +
+    '<button class="primary" data-st="addtext">Agregar al diseño</button></div>';
+  var pieces = TRY.map(function (t) { return '<button class="pchip' + (ST.tryShape === t[0] ? ' on' : '') + '" data-tryshape="' + t[0] + '">' + t[1] + '</button>'; }).join('');
+  var glazes = GLAZES.map(function (c) { return '<button class="dot sm' + (ST.tryGlaze === c ? ' on' : '') + '" data-tryglaze="' + c + '" style="background:' + c + '" aria-label="Esmalte ' + c + '"></button>'; }).join('');
+  return '<div class="pad studio">' +
+    stepHead(1, 'Armá el dibujo', 'Sumá todo lo que quieras: se combinan en el lienzo') +
+    '<div class="sources"><button data-panel="texto"' + (P === 'texto' ? ' class="on"' : '') + '><b>Aa</b><span>Texto</span></button>' +
+    '<button data-motgo="estudio">' + I.spark + '<span>Dibujo</span></button>' +
+    '<button data-st="photo">' + I.cam + '<span>De una foto</span></button></div>' + panel +
+    '<div class="stagewrap"><canvas id="stage" width="' + SW + '" height="' + SW + '" aria-label="Lienzo del diseño"></canvas>' + (has ? '' : '<div class="stagehint">Empezá con texto, un dibujo o una foto</div>') + '</div>' +
+    (has ? studioBar() : '') + (ST.err ? '<p class="sm">' + esc(ST.err) + '</p>' : '') +
+    (has ? stepHead(2, 'Probalo en la pieza', 'Se actualiza solo mientras diseñás') +
+      '<div class="pchips">' + pieces + '</div>' +
+      '<div class="live' + (LIVE.url ? '' : ' empty') + '"><img id="live3d" src="' + (LIVE.url || '') + '" alt="Tu diseño sobre la pieza"><button class="pill" data-st="try3d">' + I.cube + ' Girar en 3D</button></div>' +
+      '<div class="inks glz"><span class="muted xs">Esmalte</span>' + glazes + '</div>' +
+      stepHead(3, 'Llevalo a la arcilla') +
+      '<div class="outs"><button data-out="plantilla"><b>Imprimir plantilla</b><span>A tamaño real, para calcar, esténcil o serigrafía</span></button>' +
+      '<button data-out="calcar"><b>Calcar con el celular</b><span>Mesa de luz o sobre una foto de tu pieza</span></button>' +
+      '<button data-st="save"><b>Guardar</b><span>Queda en Mi atelier</span></button></div>' +
+      '<button class="link" data-st="clear">Empezar un diseño nuevo</button>' : '') +
+    '</div>';
+}
+function studioTabs(on) {
+  var map = { estudio: 'estudio', moldes: 'moldes' };
+  return '<div class="seg two-v" role="tablist">' + [['estudio', 'Diseño'], ['moldes', 'Moldes']].map(function (t) { return '<button role="tab" aria-selected="' + (map[on] === t[0]) + '" class="' + (map[on] === t[0] ? 'on' : '') + '" data-go="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return; var d = b.dataset;
+  if (d.out === 'plantilla') { PL.tipo = TRY_TO_PL[ST.tryShape] || 'cil'; plSave(); return set({ screen: 'plantilla' }); }
+  if (d.out === 'calcar') { TRC.src = exportDesign(true).toDataURL('image/png'); TRC.name = 'Mi diseño'; TRC.gray = null; return set({ screen: 'calcar' }); }
+  if (d.tryshape || d.tryglaze) setTimeout(function () { live3D(); }, 0);
+  if (d.st === 'addtext' || d.addart) setTimeout(function () { ST.panel = null; render(); }, 0);
+});
+
+/* ---------- plantilla simplificada: lo esencial a la vista, el resto en "Más opciones" ---------- */
+function patUIcompact() {
+  var P = PL.pat, chip = function (val, label) { return '<button class="chip' + (P.alt === val ? ' on' : '') + '" data-pata="' + val + '">' + label + '</button>'; };
+  return '<div class="patbox"><button class="secondary" data-patpre="lujo">' + I.spark + ' Estilo monograma de lujo</button>' +
+    '<span class="muted xs">Alternar</span><div class="chips tight">' + chip('no', 'Todos iguales') + chip('motivo', 'Con una flor') + chip('girar', 'Dado vuelta') + '</div>' +
+    '<label class="sm">Columnas alrededor: <b id="patcolv">' + P.cols + '</b><input type="range" min="2" max="24" value="' + P.cols + '" data-patc="cols"></label></div>';
+}
+function vPlantilla() {
+  var G = plGeom(), t = PL.tipo, fields = '', adv = !!PL.adv;
+  if (t === 'cil') fields = plField('d', 'Diámetro', PL.d, 'mm') + plField('h', 'Alto', PL.h, 'mm');
+  if (t === 'lata') fields = plField('dLata', 'Diámetro', PL.dLata || 66, 'mm') + plField('hLata', 'Alto', PL.hLata || 122, 'mm');
+  if (t === 'cono') fields = plField('dTop', 'Diámetro arriba', PL.dTop, 'mm') + plField('dBot', 'Diámetro abajo', PL.dBot, 'mm') + plField('h', 'Alto', PL.h, 'mm');
+  if (t === 'plato') fields = plField('dPlato', 'Diámetro a decorar', PL.dPlato, 'mm');
+  if (t === 'placa') fields = plField('w', 'Ancho', PL.w, 'mm') + plField('hh', 'Alto', PL.hh, 'mm');
+  var has = ST.layers.length > 0, uso = PL_USOS.find(function (u) { return u[0] === PL.uso; }) || PL_USOS[0];
+  var chips = function (list, attr, cur) { return '<div class="chips tight">' + list.map(function (x) { return '<button class="chip' + (cur === x[0] ? ' on' : '') + '" ' + attr + '="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>'; };
+  return '<div class="pad"><div class="row"><button class="round bordered" data-go="estudio" aria-label="Volver al diseño">' + I.back + '</button><span class="eyebrow" style="margin:0">Tu diseño</span></div>' +
+    '<h1>Imprimir <em>plantilla</em></h1>' +
+    (has ? '' : '<div class="note"><span>Primero armá un diseño.</span><button class="primary" data-go="estudio" style="margin-top:8px">Ir al diseño</button></div>') +
+    '<span class="eyebrow">La pieza</span>' + chips(PL_TIPOS, 'data-pltipo', PL.tipo) + '<div class="plgrid">' + fields + '</div>' +
+    '<span class="eyebrow">Para qué</span>' + chips(PL_USOS.map(function (u) { return [u[0], u[1].replace('Positivo para serigrafía', 'Serigrafía').replace('Calco de bajo cubierta', 'Calco').replace('Esténcil de papel', 'Esténcil').replace('Guía para calcar', 'Calcar')]; }), 'data-pluso', PL.uso) + '<p class="muted xs">' + esc(uso[2]) + '</p>' +
+    '<span class="eyebrow">Cómo va el diseño</span>' + chips([['centro', 'Uno al frente'], ['repetir', 'Repetido'], ['patron', 'Patrón']], 'data-pllayout', PL.layout) +
+    '<div class="plgrid">' + plField('size', PL.layout === 'patron' ? 'Tamaño del motivo' : 'Tamaño', PL.size, '%', 5, 100) + (PL.layout === 'repetir' ? plField('n', 'Cantidad', PL.n, 'veces', 1, 24) : '') + '</div>' +
+    (PL.layout === 'patron' ? (adv ? patUI() : patUIcompact()) : '') +
+    '<div class="plprev"><canvas id="plc"></canvas>' + (has ? '' : '<div class="stagehint">Sin diseño todavía</div>') + '</div>' +
+    '<p class="sm muted">' + esc(G.info) + (G.k !== 1 ? ' · agrandado ' + Math.round((G.k - 1) * 1000) / 10 + ' % por contracción' : '') + '</p>' +
+    (PL.msg ? '<p class="sm">' + esc(PL.msg) + '</p>' : '') +
+    '<button class="primary" data-plx="pdf"' + (has && !PL.busy ? '' : ' disabled') + '>' + (PL.busy ? 'Preparando…' : 'Descargar PDF para imprimir') + '</button>' +
+    '<p class="muted xs">Imprimí al 100 % (tamaño real). Cada hoja trae una regla de 5 cm para comprobarlo.</p>' +
+    '<button class="link" data-pladv="1">' + (adv ? 'Menos opciones' : 'Más opciones') + '</button>' +
+    (adv ? '<div class="advbox">' +
+      '<div class="two"><button class="secondary' + (PL.base === 'aplicar' ? ' on' : '') + '" data-plbase="aplicar">Medidas de ahora</button><button class="secondary' + (PL.base === 'final' ? ' on' : '') + '" data-plbase="final">Medidas finales</button></div>' +
+      (PL.base === 'final' ? '<div class="plgrid">' + plField('shrink', 'Contracción', PL.shrink, '%', 0, 30, .5) + '</div>' : '') +
+      (t !== 'plato' ? '<div class="plgrid">' + plField('mt', 'Margen arriba', PL.mt, 'mm', 0, 100) + plField('mb', 'Margen abajo', PL.mb, 'mm', 0, 100) + '</div>' : '') +
+      (PL.layout !== 'patron' ? '<label class="sm">Posición vertical <input type="range" min="-100" max="100" value="' + PL.dy + '" data-plrange="dy"></label>' : '') +
+      '<label class="plchk"><input type="checkbox" data-plmirror="1"' + (PL.mirror ? ' checked' : '') + '> Espejar el diseño</label>' +
+      '<div class="two"><button class="secondary" data-plx="svg"' + (has ? '' : ' disabled') + '>SVG (mm)</button><button class="secondary" data-plx="real"' + (has ? '' : ' disabled') + '>Ver a tamaño real</button></div>' +
+      '<button class="link" data-plx="calib">Calibrar la pantalla con una tarjeta</button></div>' : '') +
+    plGuide() + '</div>';
+}
+document.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b && b.dataset.pladv) { PL.adv = !PL.adv; render(); } });
+document.addEventListener('input', function (e) {
+  var d = e.target.dataset || {}; if (!d.patc) return;
+  PL.pat[d.patc] = +e.target.value; var lv = document.getElementById('patcolv'); if (lv) lv.textContent = e.target.value; plSave(); clearTimeout(PL.t); PL.t = setTimeout(drawPlPreview, 80);
+});
 /* ===================== v11: Maison — orden nuevo, proyectos y marca ===================== */
 var MARK_VASE = 'M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z';
 var MARK_GLAZE = 'M0,0 H100 V49 C92,49 90,52 86,52 C82,52 81,50 77,50 C72,50 71,54 71,57 C71,60 68,60 68,57 C68,53 66,51 61,51 C57,51 57,55 57,63 C57,68 53,68 53,63 C53,56 52,52 47,52 C42,52 40,50 37,50 C34,50 34,54 34,59 C34,62 31,62 31,59 C31,53 29,50 24,50 C18,50 14,52 0,52 Z';
@@ -3549,9 +3681,6 @@ function vMia() {
 }
 
 /* ---------- estudio: tres herramientas ---------- */
-function studioTabs(on) {
-  return '<div class="seg" role="tablist">' + [['estudio', 'Diseñar'], ['calcar', 'Calcar'], ['plantilla', 'Plantilla'], ['moldes', 'Moldes']].map(function (t) { return '<button role="tab" aria-selected="' + (on === t[0]) + '" class="' + (on === t[0] ? 'on' : '') + '" data-go="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
-}
 
 /* ---------- render con el orden nuevo ---------- */
 var SUBS = { texturas: 'explorar', referentes: 'explorar', apps: 'explorar', proceso: null, idear: 'explorar', colecciones: null };
@@ -3561,7 +3690,8 @@ function render() {
   ['aiq', 'sq', 'trq', 'mdq'].forEach(function (k) { var el = document.getElementById(k); if (el && el.value) keep[k] = el.value; });
   var html = v();
   var tab = { idea: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', pasos: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', list: 'explorar', colecciones: 'explorar', ai: 'home', textura: 'explorar', texturas: 'explorar', apps: 'explorar', buscar: 'explorar', referentes: 'explorar', proceso: S.from === 'mia' ? 'mia' : 'explorar', idear: 'explorar', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio', moldes: 'estudio', motivos: 'estudio' }[S.screen] || S.screen;
-  if (['estudio', 'calcar', 'plantilla', 'moldes'].indexOf(S.screen) >= 0) html = '<div class="segwrap"><span class="eyebrow">Estudio</span>' + studioTabs(S.screen) + '</div>' + html;
+  if (['estudio', 'moldes'].indexOf(S.screen) >= 0) html = '<div class="segwrap"><span class="eyebrow">Estudio</span>' + studioTabs(S.screen) + '</div>' + html;
+  if (S.screen === 'calcar') html = html.replace('<div class="pad">', '<div class="pad"><button class="backlink" data-go="estudio">' + I.back + 'Tu diseño</button>');
   if (['texturas', 'referentes', 'idear', 'colecciones', 'proceso'].indexOf(S.screen) >= 0) html = html.replace('<div class="pad">', '<div class="pad"><button class="backlink" data-go="' + (tab === 'mia' ? 'mia' : 'explorar') + '">' + I.back + (tab === 'mia' ? 'Mi atelier' : 'Explorar') + '</button>');
   document.getElementById('main').innerHTML = html;
   Object.keys(keep).forEach(function (k) { var el = document.getElementById(k); if (el && !el.value) el.value = keep[k]; });
