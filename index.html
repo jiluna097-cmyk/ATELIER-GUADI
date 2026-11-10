@@ -1652,7 +1652,7 @@ function vIdea() {
     '<div><span class="eyebrow">Referentes</span><p class="sm">' + esc(i.inspiracion) + '</p></div>' +
     (i.src ? '<div class="srcbox"><span class="eyebrow">Fuentes</span>' + i.src.map(function (s) { return '<a class="src" href="' + s.u + '" target="_blank" rel="noopener">' + I.ext + '<span>' + esc(s.t) + '</span></a>'; }).join('') + '</div>' : '') +
     (i.cat === 'ia' ? '<p class="muted xs">Idea generada por Claude. Verificá los referentes con las fotos.</p>' : '') +
-    stepsBtn + (typeof SHAPE_TO_MOLD !== 'undefined' && SHAPE_TO_MOLD[i.shape] ? '<button class="secondary" data-md-from="' + i.id + '">Hacer moldes para placa</button>' : '') + (i.cat !== 'tx' ? '<button class="secondary projbtn' + (STORE.cur === i.id ? ' on' : '') + '" data-act="proj">' + (STORE.cur === i.id ? '✓ Es tu proyecto en curso' : 'Elegir como proyecto en curso') + '</button>' : '') + '</div>';
+    stepsBtn + (typeof SHAPE_TO_MOLD !== 'undefined' && i.cat !== 'tx' && (SHAPE_TO_MOLD[i.shape] || S.aiOk) ? '<button class="secondary" data-md-from="' + i.id + '">Hacer moldes para placa</button>' : '') + (i.cat !== 'tx' ? '<button class="secondary projbtn' + (STORE.cur === i.id ? ' on' : '') + '" data-act="proj">' + (STORE.cur === i.id ? '✓ Es tu proyecto en curso' : 'Elegir como proyecto en curso') + '</button>' : '') + '</div>';
 }
 
 function vPasos() {
@@ -3000,7 +3000,7 @@ async function mdPDF() {
   var J = await loadJsPDF(), P = mdPieces(), pages = mdLayout(P), doc = new J({ unit: 'mm', format: 'a4' }), n = 0, totalPages = 0;
   pages.forEach(function (pg) { if (pg.big) { var p = pg.big, pw = A4.w - 2 * A4.m, ph = A4.h - 2 * A4.m - A4.head - 8; totalPages += Math.ceil(p.w / (pw - 10)) * Math.ceil(p.h / (ph - 10)); } else totalPages++; });
   var head = function (extra) {
-    doc.setFontSize(9); doc.setTextColor(40); doc.text('Atelier Guadi · Moldes para placa · ' + (MD_PRESETS[MD.preset] ? MD_PRESETS[MD.preset].nm : '') + ' · hoja ' + (++n) + ' de ' + totalPages, A4.m, A4.m + 3);
+    doc.setFontSize(9); doc.setTextColor(40); doc.text('Atelier Guadi · Moldes para placa · ' + (MD_PRESETS[MD.preset] ? MD_PRESETS[MD.preset].nm : (MD.nmAI || '')) + ' · hoja ' + (++n) + ' de ' + totalPages, A4.m, A4.m + 3);
     doc.setTextColor(110); doc.text((extra || '') + 'Placa de ' + MD.t + ' mm' + (MD.base === 'final' ? ' · agrandado ' + MD.shrink + ' % por contracción' : '') + ' · Línea negra: corte · marcas terracota: para alinear', A4.m, A4.m + 7);
     var ry = A4.h - A4.m - 1; doc.setDrawColor(0); doc.setLineWidth(.3); doc.line(A4.m, ry, A4.m + 50, ry); for (var tt = 0; tt <= 50; tt += 10) doc.line(A4.m + tt, ry - (tt % 50 ? 1.5 : 3), A4.m + tt, ry);
     doc.setTextColor(60); doc.text('Esta regla mide 5 cm: imprimí al 100 %, sin ajustar a la página.', A4.m + 54, ry);
@@ -3057,14 +3057,39 @@ function mdOpen3D() {
   for (var j = 0; j <= 48; j++) { var h = MD.H * j / 48; pts.push(new T.Vector2(mdRadius(h) / 100, h / 100)); }
   var inner = []; for (j = 48; j >= 0; j--) { h = Math.max(MD.t, MD.H * j / 48); inner.push(new T.Vector2(Math.max(.001, (mdRadius(h) - MD.t) / 100), h / 100)); }
   var prof = [new T.Vector2(.001, 0)].concat(pts).concat(inner).concat([new T.Vector2(.001, MD.t / 100)]);
-  MD3D = prof; open3D({ id: 'md', title: (MD_PRESETS[MD.preset] || {}).nm || 'Mi forma', shape: '__md', glaze: '#E9E2D6', bg: '#EDE5D9' });
+  MD3D = prof; open3D({ id: 'md', title: (MD_PRESETS[MD.preset] || {}).nm || MD.nmAI || 'Mi forma', shape: '__md', glaze: '#E9E2D6', bg: '#EDE5D9' });
 }
 var MD3D = null;
+
+
+/* ---------- formas nuevas con Claude ---------- */
+async function mdFromAI(desc, ideaId) {
+  var sample = window.claude && claude.use ? await claude.use('sample') : null;
+  if (!sample) { MD.msgAI = 'Para inventar formas con Claude hace falta la IA activa.'; return render(); }
+  MD.busyAI = true; MD.msgAI = ''; MD.notaAI = ''; MD.extrasAI = []; render();
+  try {
+    var r = await sample('Sos ceramista y armás piezas con la técnica de placas (cerámica en placa). Pieza: "' + desc + '".\n' +
+      'Proponé medidas realistas en milímetros de la pieza TERMINADA y cómo armarla con placas. Si la forma es escultórica o irregular, aproximala con la forma de revolución o caja más parecida y explicalo en "nota".\n' +
+      'Respondé SOLO JSON: {"nombre":"...","tipo":"perfil|caja","alto":mm,"diametros":[base, 25 %, 50 %, 75 %, arriba] (solo si tipo es perfil; exteriores; usá 2 valores si es cilindro o cono),"ancho":mm,"profundidad":mm (solo caja),"pared":"bandas|gajos","partes":número (bandas 1-6 o gajos 6-12),"asa":true|false,"tapa":true|false,"extras":["piezas que no salen del molde, con una indicación corta, por ej.: pico vertedor: modelarlo a mano"],"nota":"1 o 2 frases"}', { modelTier: 'complex' });
+    var m = String(r.text || r).match(/\{[\s\S]*\}/), o = m ? JSON.parse(m[0]) : null; if (!o) throw { code: 'bad' };
+    var num = function (v, lo, hi, d) { v = +v; return isNaN(v) ? d : Math.max(lo, Math.min(hi, v)); };
+    var keep = { t: MD.t, base: MD.base, shrink: MD.shrink, union: MD.union };
+    if (o.tipo === 'caja') MD = Object.assign({}, keep, { preset: 'ia', type: 'caja', W: num(o.ancho, 20, 600, 120), D: num(o.profundidad, 20, 600, 80), H: num(o.alto, 10, 600, 70), asa: false, tapa: !!o.tapa });
+    else {
+      var ds = (Array.isArray(o.diametros) ? o.diametros : []).map(function (v) { return num(v, 10, 600, 80); }).slice(0, 5);
+      if (ds.length < 2) ds = [80, 80]; if (ds.length > 2 && ds.length < 5) { while (ds.length < 5) ds.push(ds[ds.length - 1]); }
+      MD = Object.assign({}, keep, { preset: 'ia', type: 'perfil', H: num(o.alto, 10, 600, 100), ds: ds, asa: !!o.asa, tapa: !!o.tapa, wall: o.pared === 'gajos' && ds.length > 2 ? 'gajos' : 'bandas', n: Math.round(num(o.partes, 1, 12, ds.length > 2 ? 4 : 1)) });
+    }
+    MD.fromIdea = ideaId || ''; MD.nmAI = String(o.nombre || desc).slice(0, 60); MD.notaAI = String(o.nota || ''); MD.extrasAI = (Array.isArray(o.extras) ? o.extras : []).map(String).slice(0, 5);
+    mdSave();
+  } catch (e) { MD.msgAI = e && e.code === 'bad' ? 'Claude no devolvió medidas válidas. Probá describirla distinto.' : aiError(e); }
+  MD.busyAI = false; render();
+}
 
 /* ---------- pantalla ---------- */
 function mdField(id, label, val, unit, min, max, step) { return '<label class="plf"><span>' + label + '</span><span class="plin"><input type="number" inputmode="decimal" data-md="' + id + '" value="' + val + '" min="' + (min || 0) + '" max="' + (max || 2000) + '" step="' + (step || 1) + '"><em>' + unit + '</em></span></label>'; }
 function vMoldes() {
-  var P = mdPieces(), presets = Object.keys(MD_PRESETS).map(function (k) { return '<button class="chip' + (MD.preset === k ? ' on' : '') + '" data-mdp="' + k + '">' + MD_PRESETS[k].nm + '</button>'; }).join('');
+  var P = mdPieces(), presets = (MD.preset === 'ia' ? '<button class="chip on">' + I.spark + ' ' + esc(MD.nmAI || 'Forma de Claude') + '</button>' : '') + Object.keys(MD_PRESETS).map(function (k) { return '<button class="chip' + (MD.preset === k ? ' on' : '') + '" data-mdp="' + k + '">' + MD_PRESETS[k].nm + '</button>'; }).join('');
   var f = '';
   if (MD.type === 'caja') f = mdField('W', 'Ancho', MD.W, 'mm') + mdField('D', 'Profundidad', MD.D, 'mm') + mdField('H', 'Alto', MD.H, 'mm');
   else if (MD.ds.length === 2 && MD.ds[0] === MD.ds[1]) f = mdField('d0', 'Diámetro', MD.ds[0], 'mm') + mdField('H', 'Alto', MD.H, 'mm');
@@ -3073,6 +3098,8 @@ function vMoldes() {
   var curvy = MD.type !== 'caja' && MD.ds.length > 2;
   return '<div class="pad"><h1>Moldes para <em>placa</em></h1><p class="muted sm">Patrones a tamaño real para cortar la placa de arcilla y armar la pieza: base, pared, asa y tapa. Se imprimen en A4.</p>' +
     (MD.fromIdea && find(MD.fromIdea) ? '<div class="note"><span>Moldes para <b>' + esc(find(MD.fromIdea).title) + '</b>. Ajustá las medidas a tu gusto.</span></div>' : '') +
+    (S.aiOk ? '<div class="aimini"><span class="eyebrow">' + I.spark + ' Forma nueva con Claude</span><textarea id="mdq" rows="2" placeholder="Ej: florero alto y finito con cuello de botella"></textarea><button class="primary" data-mdx="ai"' + (MD.busyAI ? ' disabled' : '') + '>' + (MD.busyAI ? 'Pensando la forma…' : 'Calcular la forma y los moldes') + '</button>' + (MD.msgAI ? '<p class="sm">' + esc(MD.msgAI) + '</p>' : '') + '</div>' : '') +
+    (MD.preset === 'ia' && (MD.notaAI || (MD.extrasAI || []).length) ? '<div class="note"><span class="eyebrow">Nota de Claude</span><span class="sm">' + esc(MD.notaAI || '') + '</span>' + ((MD.extrasAI || []).length ? '<ul class="sm" style="margin:6px 0 0;padding-left:18px">' + MD.extrasAI.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') + '<span class="muted xs">Revisá las medidas: son una propuesta y las podés cambiar abajo.</span></div>' : '') +
     '<span class="eyebrow">1 · La forma</span><div class="chips tight">' + presets + '</div>' +
     '<div class="mdtop"><canvas id="mdprof" aria-label="Silueta de la pieza"></canvas><div class="plgrid one">' + f + '</div></div>' +
     (curvy ? '<p class="muted xs">Cambiá los diámetros para inventar tu propia forma. La silueta se actualiza sola.</p>' : '') +
@@ -3122,7 +3149,15 @@ document.addEventListener('click', function (e) {
   if (d.mdw) { MD.wall = d.mdw; MD.n = d.mdw === 'gajos' ? Math.max(6, MD.n) : Math.min(MD.n, 6); mdSave(); return render(); }
   if (d.mdu) { MD.union = d.mdu; mdSave(); return render(); }
   if (d.mdg) { S.mdg = S.mdg === +d.mdg ? -1 : +d.mdg; return render(); }
-  if (d.mdFrom) { var it = find(d.mdFrom); if (it && SHAPE_TO_MOLD[it.shape]) mdPreset(SHAPE_TO_MOLD[it.shape], it.id); return set({ screen: 'moldes' }); }
+  if (d.mdFrom) {
+    var it = find(d.mdFrom); if (!it) return;
+    var useAI = S.aiOk && (it.cat === 'ia' || !SHAPE_TO_MOLD[it.shape]);
+    if (!useAI && SHAPE_TO_MOLD[it.shape]) mdPreset(SHAPE_TO_MOLD[it.shape], it.id);
+    set({ screen: 'moldes' });
+    if (useAI) mdFromAI(it.title + '. ' + (it.pitch || ''), it.id);
+    return;
+  }
+  if (d.mdx === 'ai') { var q = ((document.getElementById('mdq') || {}).value || '').trim(); if (!q) { MD.msgAI = 'Contame qué forma querés.'; return render(); } return mdFromAI(q); }
   if (d.mdx === '3d') return mdOpen3D();
   if (d.mdx === 'pdf') { MD.busy = true; MD.msg = ''; render(); mdPDF().catch(function (er) { MD.msg = er && er.code === 'declined' ? '' : 'No se pudo generar el PDF. Probá de nuevo.'; }).then(function () { MD.busy = false; render(); }); return; }
   if (d.mdx === 'svg') { mdSVG().catch(function (er) { if (!(er && er.code === 'declined')) { MD.msg = 'No se pudo descargar el SVG.'; render(); } }); return; }
@@ -3235,14 +3270,14 @@ var SUBS = { texturas: 'explorar', referentes: 'explorar', apps: 'explorar', pro
 function render() {
   var v = { home: vHome, explorar: vExplorar, colecciones: vColecciones, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte, plantilla: vPlantilla, calib: vCalib, moldes: vMoldes }[S.screen] || vHome;
   var keep = {}, act = document.activeElement && document.activeElement.id;
-  ['aiq', 'sq', 'trq'].forEach(function (k) { var el = document.getElementById(k); if (el && el.value) keep[k] = el.value; });
+  ['aiq', 'sq', 'trq', 'mdq'].forEach(function (k) { var el = document.getElementById(k); if (el && el.value) keep[k] = el.value; });
   var html = v();
   var tab = { idea: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', pasos: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', list: 'explorar', colecciones: 'explorar', ai: 'home', textura: 'explorar', texturas: 'explorar', apps: 'explorar', buscar: 'explorar', referentes: 'explorar', proceso: S.from === 'mia' ? 'mia' : 'explorar', idear: 'explorar', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio', moldes: 'estudio' }[S.screen] || S.screen;
   if (['estudio', 'calcar', 'plantilla', 'moldes'].indexOf(S.screen) >= 0) html = '<div class="segwrap"><span class="eyebrow">Estudio</span>' + studioTabs(S.screen) + '</div>' + html;
   if (['texturas', 'referentes', 'idear', 'colecciones', 'proceso'].indexOf(S.screen) >= 0) html = html.replace('<div class="pad">', '<div class="pad"><button class="backlink" data-go="' + (tab === 'mia' ? 'mia' : 'explorar') + '">' + I.back + (tab === 'mia' ? 'Mi atelier' : 'Explorar') + '</button>');
   document.getElementById('main').innerHTML = html;
   Object.keys(keep).forEach(function (k) { var el = document.getElementById(k); if (el && !el.value) el.value = keep[k]; });
-  if (act && ['aiq', 'sq', 'trq'].indexOf(act) >= 0) { var fe = document.getElementById(act); if (fe) { fe.focus(); try { fe.setSelectionRange(fe.value.length, fe.value.length); } catch (e) {} } }
+  if (act && ['aiq', 'sq', 'trq', 'mdq'].indexOf(act) >= 0) { var fe = document.getElementById(act); if (fe) { fe.focus(); try { fe.setSelectionRange(fe.value.length, fe.value.length); } catch (e) {} } }
   document.querySelectorAll('nav button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-go') === tab); });
   if (S.screen === 'estudio' && typeof drawStage === 'function') { stageGestures(); drawStage(); }
   if (S.screen === 'recorte' && typeof drawCut === 'function') setTimeout(drawCut, 0);
