@@ -327,6 +327,8 @@ button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 
 .lbcap .lbtn{background:#F7F2EA;color:#171412}
 .artgrid.two{grid-template-columns:1fr 1fr}.artbtn.big img{width:100%;height:auto;aspect-ratio:1}
 .dprev{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;justify-content:center}.dprev img{max-width:100%;max-height:220px}
+.patbox{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+.patmots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.patm{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:11.5px}.patm img{width:34px;height:34px}.patm.on{border-color:var(--clay);box-shadow:inset 0 0 0 1px var(--clay)}
 /* navegación */
 nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
@@ -2432,7 +2434,7 @@ function paintBand(g, wpx, hpx, ppm, des) {
   var put = function (cx) { g.drawImage(des, cx - dw / 2, cy - dh / 2, dw, dh); };
   if (PL.layout === 'centro') put(wpx / 2);
   else if (PL.layout === 'repetir') { var n = Math.max(1, PL.n); for (var i = 0; i < n; i++) put(wpx * (i + .5) / n); }
-  else { var cols = Math.max(1, Math.round(wpx / (dw * 1.25))), rows = Math.max(1, Math.floor(ah / (dh * 1.15))); for (var r = 0; r < rows; r++) for (var q = 0; q < cols; q++) { var cx = wpx * (q + .5 + (r % 2 ? .5 : 0)) / cols; g.drawImage(des, cx - dw / 2, top + ah * (r + .5) / rows - dh / 2, dw, dh); if (r % 2 && q === cols - 1) g.drawImage(des, cx - wpx - dw / 2, top + ah * (r + .5) / rows - dh / 2, dw, dh); } }
+  else paintPattern(g, 0, top, wpx, ah, des, true);
 }
 
 /* ---------- plantilla completa ---------- */
@@ -2455,7 +2457,7 @@ function renderTemplate(ppm) {
     var sz = D * PL.size / 100 * .6, dw = sz * des.width / Math.max(des.width, des.height), dh = sz * des.height / Math.max(des.width, des.height);
     if (PL.layout === 'centro') og.drawImage(des, R - dw / 2, R - dh / 2 + PL.dy / 100 * R * .5, dw, dh);
     else if (PL.layout === 'repetir') { var n = Math.max(1, PL.n), rr = R - Math.max(dw, dh) / 2 - PL.mt * ppm; for (var i = 0; i < n; i++) { og.save(); og.translate(R, R); og.rotate(i * 2 * Math.PI / n); og.drawImage(des, -dw / 2, -rr - dh / 2, dw, dh); og.restore(); } }
-    else { var step = Math.max(dw, dh) * 1.25; for (var y = -step; y < D + step; y += step) for (var x = -step; x < D + step; x += step) og.drawImage(des, x + ((y / step) % 2 ? step / 2 : 0) - dw / 2, y - dh / 2, dw, dh); }
+    else paintPattern(og, 0, 0, D, D, des, false);
     og.restore();
     og.setLineDash([3 * ppm, 2 * ppm]); og.lineWidth = Math.max(1, .3 * ppm); og.strokeStyle = outline; og.beginPath(); og.arc(R, R, R - 1, 0, 7); og.stroke();
     og.setLineDash([]); og.beginPath(); og.moveTo(R - 3 * ppm, R); og.lineTo(R + 3 * ppm, R); og.moveTo(R, R - 3 * ppm); og.lineTo(R, R + 3 * ppm); og.stroke();
@@ -2562,8 +2564,8 @@ function vPlantilla() {
     '<span class="eyebrow">2 · Para qué la querés</span><div class="list tight">' + PL_USOS.map(function (u) { return '<button class="mode' + (PL.uso === u[0] ? ' on' : '') + '" data-pluso="' + u[0] + '"><b>' + u[1] + '</b><span>' + u[2] + '</span></button>'; }).join('') + '</div>' +
     '<label class="plchk"><input type="checkbox" data-plmirror="1"' + (PL.mirror ? ' checked' : '') + '> Espejar el diseño ' + (PL.uso === 'transfer' ? '(necesario para el calco)' : '') + '</label>' +
     '<span class="eyebrow">3 · Cómo va el diseño</span><div class="chips tight">' + [['centro', 'Uno al frente'], ['repetir', 'Repetido alrededor'], ['patron', 'Patrón continuo']].map(function (x) { return '<button class="chip' + (PL.layout === x[0] ? ' on' : '') + '" data-pllayout="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>' +
-    '<div class="plgrid">' + (PL.layout === 'repetir' ? plField('n', 'Cantidad', PL.n, 'veces', 1, 24) : '') + plField('size', 'Tamaño del diseño', PL.size, '%', 5, 100) + (t !== 'plato' ? plField('mt', 'Margen arriba', PL.mt, 'mm', 0, 100) + plField('mb', 'Margen abajo', PL.mb, 'mm', 0, 100) : '') + '</div>' +
-    '<label class="sm">Posición vertical <input type="range" min="-100" max="100" value="' + PL.dy + '" data-plrange="dy"></label>' +
+    '<div class="plgrid">' + (PL.layout === 'repetir' ? plField('n', 'Cantidad', PL.n, 'veces', 1, 24) : '') + plField('size', PL.layout === 'patron' ? 'Tamaño del motivo' : 'Tamaño del diseño', PL.size, '%', 5, 100) + (t !== 'plato' ? plField('mt', 'Margen arriba', PL.mt, 'mm', 0, 100) + plField('mb', 'Margen abajo', PL.mb, 'mm', 0, 100) : '') + '</div>' +
+    (PL.layout === 'patron' ? patUI() : '<label class="sm">Posición vertical <input type="range" min="-100" max="100" value="' + PL.dy + '" data-plrange="dy"></label>') +
     '<span class="eyebrow">4 · Vista previa</span><div class="plprev"><canvas id="plc"></canvas>' + (hasDesign ? '' : '<div class="stagehint">Sin diseño todavía</div>') + '</div>' +
     '<p class="sm"><b>' + esc(G.info) + '</b>' + (G.k !== 1 ? '<br><span class="muted">Agrandado ' + Math.round((G.k - 1) * 1000) / 10 + ' % por la contracción.</span>' : '') + '</p>' +
     (PL.msg ? '<p class="sm">' + esc(PL.msg) + '</p>' : '') +
@@ -3387,6 +3389,66 @@ document.addEventListener('click', function (e) {
     if (dd.duse === 'plantilla') { PL.tipo = plTipoFor(i); PL.layout = i.shape === 'plato' ? 'repetir' : 'centro'; plSave(); set({ screen: 'plantilla' }); }
     else set({ screen: 'estudio' });
   });
+});
+/* ===================== v13: patrón continuo editable (estilo monograma de lujo) ===================== */
+PL.pat = Object.assign({ disp: 'ladrillo', cols: 6, rows: 0, rot: 0, alt: 'no', mot2: 'flor4', size2: 55, rotAlt: 0 }, PL.pat || {});
+var PAT_MOTS = [['flor4', 'Flor de 4'], ['estrella4', 'Estrella de 4'], ['flor6', 'Flor de 6'], ['rombo', 'Rombo'], ['punto', 'Punto'], ['aro', 'Aro']];
+var PAT_CACHE = {};
+function patMot(k) {
+  if (PAT_CACHE[k]) return PAT_CACHE[k];
+  var c = document.createElement('canvas'); c.width = c.height = 240; var g = c.getContext('2d'); g.fillStyle = '#111'; g.translate(120, 120);
+  if (k === 'flor4') { for (var a = 0; a < 4; a++) { g.save(); g.rotate(a * Math.PI / 2); g.beginPath(); g.ellipse(0, -58, 44, 56, 0, 0, 7); g.fill(); g.restore(); } g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(0, 0, 22, 0, 7); g.fill(); g.globalCompositeOperation = 'source-over'; g.beginPath(); g.arc(0, 0, 12, 0, 7); g.fill(); }
+  else if (k === 'estrella4') { g.beginPath(); for (a = 0; a < 4; a++) { var t = a * Math.PI / 2; g.lineTo(Math.sin(t) * 112, -Math.cos(t) * 112); g.quadraticCurveTo(Math.sin(t + Math.PI / 4) * 20, -Math.cos(t + Math.PI / 4) * 20, Math.sin(t + Math.PI / 2) * 112, -Math.cos(t + Math.PI / 2) * 112); } g.fill(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(0, 0, 14, 0, 7); g.fill(); }
+  else if (k === 'flor6') { for (a = 0; a < 6; a++) { g.save(); g.rotate(a * Math.PI / 3); g.beginPath(); g.ellipse(0, -62, 28, 50, 0, 0, 7); g.fill(); g.restore(); } g.beginPath(); g.arc(0, 0, 24, 0, 7); g.fill(); }
+  else if (k === 'rombo') { g.beginPath(); g.moveTo(0, -110); g.lineTo(80, 0); g.lineTo(0, 110); g.lineTo(-80, 0); g.closePath(); g.fill(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.moveTo(0, -60); g.lineTo(42, 0); g.lineTo(0, 60); g.lineTo(-42, 0); g.closePath(); g.fill(); }
+  else if (k === 'punto') { g.beginPath(); g.arc(0, 0, 70, 0, 7); g.fill(); }
+  else { g.lineWidth = 26; g.strokeStyle = '#111'; g.beginPath(); g.arc(0, 0, 90, 0, 7); g.stroke(); }
+  PAT_CACHE[k] = c; return c;
+}
+/* dibuja el patrón en el rectángulo (x0, y0, W, H); wrap: que empalme al dar la vuelta a la pieza */
+function paintPattern(g, x0, y0, W, H, des, wrap) {
+  var P = PL.pat, cols = Math.max(1, Math.round(P.cols)), cw = W / cols, rows = P.rows > 0 ? Math.round(P.rows) : Math.max(1, Math.round(H / cw)), ch = H / rows;
+  var box = Math.min(cw, ch) * PL.size / 100, m2 = patMot(P.mot2);
+  var drawOne = function (img, cx, cy, sz, rot, flip) {
+    var dw = sz * img.width / Math.max(img.width, img.height), dh = sz * img.height / Math.max(img.width, img.height);
+    var xs = wrap ? [cx - W, cx, cx + W] : [cx];
+    xs.forEach(function (xx) { g.save(); g.translate(x0 + xx, y0 + cy); g.rotate(rot); if (flip) g.scale(-1, 1); g.drawImage(img, -dw / 2, -dh / 2, dw, dh); g.restore(); });
+  };
+  var extra = P.disp === 'mediopaso' ? 1 : 0;
+  for (var r = -extra; r < rows + extra; r++) for (var c = 0; c < cols; c++) {
+    var cx = (c + .5) * cw, cy = (r + .5) * ch, k;
+    if (P.disp === 'ladrillo') { if (r % 2) cx += cw / 2; k = Math.abs(r) % 2; }
+    else if (P.disp === 'mediopaso') { if (c % 2) cy += ch / 2; k = c % 2; }
+    else k = (r + c + 2) % 2;
+    var rot = P.rot * Math.PI / 180;
+    if (k && P.alt === 'motivo') drawOne(m2, cx, cy, box * P.size2 / 100, rot + P.rotAlt * Math.PI / 180, false);
+    else drawOne(des, cx, cy, box, rot + (k && P.alt === 'girar' ? Math.PI : 0), k && P.alt === 'espejo');
+    if (P.disp === 'ladrillo' && r % 2 && c === cols - 1 && !wrap) drawOne(k && P.alt === 'motivo' ? m2 : des, cx - W, cy, k && P.alt === 'motivo' ? box * P.size2 / 100 : box, rot, false);
+  }
+}
+function patUI() {
+  var P = PL.pat, chip = function (attr, val, cur, label) { return '<button class="chip' + (cur === val ? ' on' : '') + '" ' + attr + '="' + val + '">' + label + '</button>'; };
+  var field = function (k, label, val, unit, min, max, step) { return '<label class="plf"><span>' + label + '</span><span class="plin"><input type="number" inputmode="decimal" data-pat="' + k + '" value="' + val + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '"><em>' + unit + '</em></span></label>'; };
+  return '<div class="patbox"><div class="between"><span class="eyebrow" style="margin:0">El patrón</span><button class="link" data-patpre="lujo">Estilo monograma de lujo</button></div>' +
+    '<span class="muted xs">Cómo se ordenan las filas</span><div class="chips tight">' + chip('data-patd', 'cuadricula', P.disp, 'Cuadrícula') + chip('data-patd', 'ladrillo', P.disp, 'Desfasado (ladrillo)') + chip('data-patd', 'mediopaso', P.disp, 'Medio paso vertical') + '</div>' +
+    '<div class="plgrid">' + field('cols', PL.tipo === 'plato' ? 'Columnas' : 'Columnas alrededor', P.cols, '', 1, 40) + field('rows', 'Filas (0 = automático)', P.rows, '', 0, 30) + '</div>' +
+    '<label class="sm">Giro del motivo: <b id="patrotv">' + P.rot + '°</b><input type="range" min="-180" max="180" step="5" value="' + P.rot + '" data-patr="rot"></label>' +
+    '<span class="muted xs">Alternar uno sí, uno no</span><div class="chips tight">' + chip('data-pata', 'no', P.alt, 'Todos iguales') + chip('data-pata', 'espejo', P.alt, 'Espejado') + chip('data-pata', 'girar', P.alt, 'Dado vuelta') + chip('data-pata', 'motivo', P.alt, 'Con otro motivo') + '</div>' +
+    (P.alt === 'motivo' ? '<div class="patmots">' + PAT_MOTS.map(function (m) { return '<button class="patm' + (P.mot2 === m[0] ? ' on' : '') + '" data-patm="' + m[0] + '"><img src="' + patMot(m[0]).toDataURL() + '" alt=""><span>' + m[1] + '</span></button>'; }).join('') + '</div>' +
+      '<div class="plgrid">' + field('size2', 'Tamaño del 2.º motivo', P.size2, '%', 10, 150) + field('rotAlt', 'Giro del 2.º motivo', P.rotAlt, '°', -180, 180, 5) + '</div>' : '') +
+    '<p class="muted xs">Las columnas empalman justo al dar la vuelta a la pieza. Para un monograma propio, usá tus iniciales en el Estudio: copiar el logo de una marca no se puede vender.</p></div>';
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return; var d = b.dataset, P = PL.pat;
+  if (d.patd) { P.disp = d.patd; plSave(); return render(); }
+  if (d.pata) { P.alt = d.pata; plSave(); return render(); }
+  if (d.patm) { P.mot2 = d.patm; plSave(); return render(); }
+  if (d.patpre === 'lujo') { var G = plGeom(), wmm = G.kind === 'arc' ? G.bandW : G.w; Object.assign(P, { disp: 'ladrillo', cols: Math.max(4, Math.round(wmm / 26)), rows: 0, rot: 0, alt: 'motivo', mot2: 'flor4', size2: 50, rotAlt: 0 }); PL.size = 62; PL.layout = 'patron'; plSave(); return render(); }
+});
+document.addEventListener('input', function (e) {
+  var d = e.target.dataset || {}, P = PL.pat;
+  if (d.pat) { var v = parseFloat(String(e.target.value).replace(',', '.')); if (isNaN(v)) return; P[d.pat] = v; plSave(); clearTimeout(PL.t); PL.t = setTimeout(drawPlPreview, 150); }
+  if (d.patr) { P[d.patr] = +e.target.value; var lv = document.getElementById('patrotv'); if (lv) lv.textContent = P.rot + '°'; plSave(); clearTimeout(PL.t); PL.t = setTimeout(drawPlPreview, 80); }
 });
 /* ===================== v11: Maison — orden nuevo, proyectos y marca ===================== */
 var MARK_VASE = 'M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z';
