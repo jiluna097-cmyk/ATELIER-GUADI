@@ -306,6 +306,14 @@ button.mode.on{border-color:var(--clay);background:#FBF3EC;box-shadow:inset 0 0 
 .plchk input{accent-color:var(--clay)}
 .proj .ctitle{color:var(--ink)}
 .segwrap+.pad>.eyebrow:first-child,.segwrap+.pad>.eyebrow:first-child+h1{display:none}
+.seg.two-v{grid-template-columns:1fr 1fr}.seg button{padding:0 6px;line-height:1.15}
+.seg:has(button:nth-child(4)){grid-template-columns:repeat(4,1fr)}
+.mdtop{display:flex;gap:14px;align-items:flex-start}.mdtop canvas{flex:0 0 120px;background:var(--sand);border-radius:14px}
+.plgrid.one{grid-template-columns:1fr;flex:1;margin:0}
+.mdrow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.mdrow b{font-weight:600;font-size:14px}
+.cutwrap canvas{width:100%;height:auto;border-radius:14px;display:block;background:#fff}
+.tinput{width:100%;border:0;border-bottom:1px solid #CBBFB0;background:transparent;font:italic 400 21px 'Cormorant Garamond',Georgia,serif;padding:6px 0 8px;outline:none;color:var(--ink)}
 /* navegación */
 nav{grid-template-columns:repeat(4,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(250,247,242,.92)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 nav button{font-family:Inter,sans-serif;font-weight:500!important;font-size:10px!important;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)!important;position:relative}
@@ -1282,6 +1290,16 @@ function v3build(T, i) {
     add(new T.SphereGeometry(.14, 24, 16), mat, -.7, .3, 0);
     add(new T.CylinderGeometry(.04, .06, .14, 12), mk('#5A4632'), .76, .46, 0).rotation.z = -.6;
     for (var b = 0; b < 3; b++) { var pe = add(new T.ConeGeometry(.09, .5, 16, 1, true), mk('#E9C94A')); pe.position.set(-.86, .2 + b * .06, (b - 1) * .1); pe.rotation.set((b - 1) * .5, 0, 1.9); }
+  } else if (s === '__md') {
+    add(new T.LatheGeometry(MD3D, 128), mat);
+    if (MD.asa) handle(mdRadius(MD.H * .55) / 100 + .01, MD.H * .55 / 100, MD.H * .2 / 100);
+    if (MD.tapa) { var trr = mdRadius(MD.H) / 100; add(new T.CylinderGeometry(trr + .03, trr + .03, MD.t / 100, 96), mat, 0, MD.H / 100 + MD.t / 200, 0); }
+  } else if (s === '__mdbox') {
+    var bw = MD.W / 100, bd = MD.D / 100, bh = MD.H / 100, tt = MD.t / 100;
+    add(new T.BoxGeometry(bw, tt, bd), mat, 0, tt / 2, 0);
+    add(new T.BoxGeometry(bw, bh, tt), mat, 0, bh / 2, bd / 2 - tt / 2); add(new T.BoxGeometry(bw, bh, tt), mat, 0, bh / 2, -bd / 2 + tt / 2);
+    add(new T.BoxGeometry(tt, bh, bd - 2 * tt), mat, bw / 2 - tt / 2, bh / 2, 0); add(new T.BoxGeometry(tt, bh, bd - 2 * tt), mat, -bw / 2 + tt / 2, bh / 2, 0);
+    if (MD.tapa) add(new T.BoxGeometry(bw, tt, bd), mat, 0, bh + tt * 1.5, 0);
   } else {
     var prof = P3[s] || P3.cuenco, R = prof[prof.length - 1][0];
     var map = null, rep = tx && tx.rep;
@@ -1634,7 +1652,7 @@ function vIdea() {
     '<div><span class="eyebrow">Referentes</span><p class="sm">' + esc(i.inspiracion) + '</p></div>' +
     (i.src ? '<div class="srcbox"><span class="eyebrow">Fuentes</span>' + i.src.map(function (s) { return '<a class="src" href="' + s.u + '" target="_blank" rel="noopener">' + I.ext + '<span>' + esc(s.t) + '</span></a>'; }).join('') + '</div>' : '') +
     (i.cat === 'ia' ? '<p class="muted xs">Idea generada por Claude. Verificá los referentes con las fotos.</p>' : '') +
-    stepsBtn + (i.cat !== 'tx' ? '<button class="secondary projbtn' + (STORE.cur === i.id ? ' on' : '') + '" data-act="proj">' + (STORE.cur === i.id ? '✓ Es tu proyecto en curso' : 'Elegir como proyecto en curso') + '</button>' : '') + '</div>';
+    stepsBtn + (typeof SHAPE_TO_MOLD !== 'undefined' && SHAPE_TO_MOLD[i.shape] ? '<button class="secondary" data-md-from="' + i.id + '">Hacer moldes para placa</button>' : '') + (i.cat !== 'tx' ? '<button class="secondary projbtn' + (STORE.cur === i.id ? ' on' : '') + '" data-act="proj">' + (STORE.cur === i.id ? '✓ Es tu proyecto en curso' : 'Elegir como proyecto en curso') + '</button>' : '') + '</div>';
 }
 
 function vPasos() {
@@ -2599,16 +2617,526 @@ document.addEventListener('click', function (e) {
   if (d.plx === 'real') return openRealSize();
   if (d.plx === 'calib') return set({ screen: 'calib' });
 });
+/* ===================== v12: recorte de fotos con segmentación real ===================== */
+/* Flujo: caja (Claude la encuentra o se marca con el dedo) → modelo U²-Net (ONNX, en el navegador) → máscara
+   → retoque con pincel → contorno suave + líneas interiores (XDoG). */
+var SEG = { ort: null, sess: null, loading: null, failed: false };
+function segLoad() {
+  if (SEG.sess) return Promise.resolve(SEG.sess);
+  if (SEG.loading) return SEG.loading;
+  SEG.loading = new Promise(function (res, rej) {
+    var go = function () {
+      try {
+        ort.env.wasm.wasmPaths = new URL('ort/', location.href).href; ort.env.wasm.numThreads = 1;
+        ort.InferenceSession.create(new URL('models/u2netp.wasm', location.href).href, { executionProviders: ['wasm'] })
+          .then(function (s) { SEG.sess = s; res(s); }, rej);
+      } catch (e) { rej(e); }
+    };
+    if (window.ort) return go();
+    var sc = document.createElement('script'); sc.src = 'ort/ort.wasm.min.js'; sc.onload = go; sc.onerror = rej; document.head.appendChild(sc);
+  }).catch(function (e) { SEG.failed = true; SEG.loading = null; throw e; });
+  return SEG.loading;
+}
+/* recorta la caja, la pasa por el modelo y devuelve una máscara 0..1 del tamaño de la caja */
+async function segBox(img, bx) {
+  var s = await segLoad(), N = 320, c = document.createElement('canvas'); c.width = c.height = N;
+  var g = c.getContext('2d'); g.drawImage(img, bx.x, bx.y, bx.w, bx.h, 0, 0, N, N);
+  var d = g.getImageData(0, 0, N, N).data, x = new Float32Array(3 * N * N), M = [.485, .456, .406], SD = [.229, .224, .225];
+  var mx = 0; for (var i = 0; i < N * N; i++) for (var ch = 0; ch < 3; ch++) { var v = d[i * 4 + ch] / 255; if (v > mx) mx = v; }
+  mx = mx || 1;
+  for (i = 0; i < N * N; i++) for (ch = 0; ch < 3; ch++) x[ch * N * N + i] = (d[i * 4 + ch] / 255 / mx - M[ch]) / SD[ch];
+  var feeds = {}; feeds[s.inputNames[0]] = new ort.Tensor('float32', x, [1, 3, N, N]);
+  var out = await s.run(feeds), o = out[s.outputNames[0]].data, lo = Infinity, hi = -Infinity;
+  for (i = 0; i < o.length; i++) { if (o[i] < lo) lo = o[i]; if (o[i] > hi) hi = o[i]; }
+  var mc = document.createElement('canvas'); mc.width = mc.height = N; var mg = mc.getContext('2d'), md = mg.createImageData(N, N);
+  for (i = 0; i < N * N; i++) { var a = (o[i] - lo) / (hi - lo || 1); md.data[i * 4 + 3] = Math.round(a * 255); }
+  mg.putImageData(md, 0, 0); return mc;
+}
+
+var CUT = { url: null, img: null, w: 0, h: 0, mask: null, gray: null, boxes: [], names: [], tool: 'caja', style: 'ambos', det: 55, grosor: 3, busy: false, err: '', target: 'estudio', view: 'foto', drag: null };
+function cutReset(target) { return { url: null, img: null, w: 0, h: 0, mask: null, gray: null, boxes: [], names: [], tool: 'caja', style: 'ambos', det: 55, grosor: 3, busy: false, err: '', target: target, view: 'foto', drag: null, hasMask: false }; }
+async function startCut(target) {
+  pickPhoto(async function (f) {
+    var b = await shrink(f); CUT = cutReset(target); CUT.url = URL.createObjectURL(b); CUT.blob = b;
+    var im = new Image(); im.onload = function () {
+      var k = Math.min(1, 1024 / Math.max(im.width, im.height)); CUT.w = Math.round(im.width * k); CUT.h = Math.round(im.height * k);
+      var c = document.createElement('canvas'); c.width = CUT.w; c.height = CUT.h; c.getContext('2d').drawImage(im, 0, 0, CUT.w, CUT.h); CUT.img = c;
+      var d = c.getContext('2d').getImageData(0, 0, CUT.w, CUT.h).data, gy = new Float32Array(CUT.w * CUT.h);
+      for (var i = 0; i < gy.length; i++) gy[i] = (.299 * d[i * 4] + .587 * d[i * 4 + 1] + .114 * d[i * 4 + 2]) / 255;
+      CUT.gray = gy; CUT.mask = document.createElement('canvas'); CUT.mask.width = CUT.w; CUT.mask.height = CUT.h;
+      set({ screen: 'recorte' }); setTimeout(drawCut, 30);
+      segLoad().catch(function () {});
+    };
+    im.src = CUT.url;
+  });
+}
+async function cutBoxes(boxes, names) {
+  CUT.busy = true; CUT.err = ''; render(); setTimeout(drawCut, 0);
+  try {
+    var mg = CUT.mask.getContext('2d');
+    for (var k = 0; k < boxes.length; k++) {
+      var b = boxes[k], px = b.w * .08, py = b.h * .08;
+      var bx = { x: Math.max(0, b.x - px), y: Math.max(0, b.y - py) }; bx.w = Math.min(CUT.w, b.x + b.w + px) - bx.x; bx.h = Math.min(CUT.h, b.y + b.h + py) - bx.y;
+      if (bx.w < 8 || bx.h < 8) continue;
+      var m = await segBox(CUT.img, bx); mg.drawImage(m, bx.x, bx.y, bx.w, bx.h); CUT.boxes.push(bx); CUT.maskVer = (CUT.maskVer || 0) + 1;
+    }
+    if (names) CUT.names = CUT.names.concat(names);
+    CUT.hasMask = true; CUT.view = 'foto'; CUT.tool = 'sumar';
+  } catch (e) { CUT.err = SEG.failed ? 'No se pudo cargar el detector de objetos en este navegador. Probá desde Chrome o Safari actualizados.' : 'No se pudo recortar. Probá de nuevo.'; }
+  CUT.busy = false; render(); setTimeout(drawCut, 0);
+}
+async function aiCut(pedido) {
+  var sample = await claude.use('sample'); if (!sample) { CUT.err = 'Para buscar con IA hace falta Claude. Marcá el objeto con el dedo.'; render(); return setTimeout(drawCut, 0); }
+  CUT.busy = true; CUT.err = ''; render(); setTimeout(drawCut, 0);
+  try {
+    var r = await sample('Mirá la foto y ubicá exactamente lo que pide la persona: "' + pedido + '". Para cada objeto o persona que corresponda, devolvé su caja: [x0,y0,x1,y1] en coordenadas de 0 a 1000 (0,0 arriba a la izquierda; 1000,1000 abajo a la derecha), ajustada al borde del objeto entero, sin cortar partes. ' +
+      'Respondé SOLO JSON: {"objetos":[{"nombre":"...","caja":[x0,y0,x1,y1]}]}. Si no está en la foto, {"objetos":[]}.', { images: [CUT.blob], modelTier: 'complex' });
+    var m = String(r.text || r).match(/\{[\s\S]*\}/), obs = m ? (JSON.parse(m[0]).objetos || []) : [];
+    obs = obs.filter(function (o) { return Array.isArray(o.caja) && o.caja.length === 4; });
+    if (!obs.length) throw { code: 'none' };
+    var boxes = obs.map(function (o) { var c = o.caja.map(function (v) { return Math.max(0, Math.min(1000, +v || 0)); }); return { x: c[0] / 1000 * CUT.w, y: c[1] / 1000 * CUT.h, w: (c[2] - c[0]) / 1000 * CUT.w, h: (c[3] - c[1]) / 1000 * CUT.h }; });
+    CUT.busy = false; return cutBoxes(boxes, obs.map(function (o) { return String(o.nombre || ''); }));
+  } catch (e) {
+    CUT.err = e && e.code === 'none' ? 'No lo encontré. Probá describirlo distinto o marcalo con el dedo.' : (e && e.code === 'no_images' ? 'En este dispositivo no se pueden enviar fotos a Claude. Marcá el objeto con el dedo.' : aiError(e));
+  }
+  CUT.busy = false; render(); setTimeout(drawCut, 0);
+}
+
+/* ---------- procesamiento de imagen ---------- */
+function boxBlur(src, w, h, r) {
+  var tmp = new Float32Array(src.length), out = new Float32Array(src.length), x, y, acc, n = 2 * r + 1;
+  for (y = 0; y < h; y++) { var o = y * w; acc = 0; for (x = -r; x <= r; x++) acc += src[o + Math.min(w - 1, Math.max(0, x))]; for (x = 0; x < w; x++) { tmp[o + x] = acc / n; acc += src[o + Math.min(w - 1, x + r + 1)] - src[o + Math.max(0, x - r)]; } }
+  for (x = 0; x < w; x++) { acc = 0; for (y = -r; y <= r; y++) acc += tmp[Math.min(h - 1, Math.max(0, y)) * w + x]; for (y = 0; y < h; y++) { out[y * w + x] = acc / n; acc += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x]; } }
+  return out;
+}
+function gblur(src, w, h, s) { var r = Math.max(1, Math.round(s * .9)), a = boxBlur(src, w, h, r); a = boxBlur(a, w, h, r); return boxBlur(a, w, h, r); }
+function maskArray() {
+  var d = CUT.mask.getContext('2d').getImageData(0, 0, CUT.w, CUT.h).data, m = new Float32Array(CUT.w * CUT.h);
+  for (var i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] / 255; return m;
+}
+function cutLines() {
+  var w = CUT.w, h = CUT.h, n = w * h, out = new Float32Array(n), m = CUT.hasMask ? maskArray() : null;
+  var lw = CUT.grosor * Math.max(1, Math.max(w, h) / 700);
+  if (m && CUT.style !== 'detalles') {
+    var mb = gblur(m, w, h, 2.2);
+    for (var y = 1; y < h - 1; y++) for (var x = 1; x < w - 1; x++) {
+      var i = y * w + x, gx = (mb[i + 1] - mb[i - 1]) / 2, gy = (mb[i + w] - mb[i - w]) / 2, g = Math.sqrt(gx * gx + gy * gy);
+      if (g < 1e-4) continue;
+      var dist = Math.abs(mb[i] - .5) / g, a = Math.max(0, Math.min(1, lw / 2 + .7 - dist));
+      if (a > out[i]) out[i] = a;
+    }
+  }
+  if (CUT.style !== 'contorno') {
+    var sig = .8 + (100 - CUT.det) / 100 * 1.4, g1 = gblur(CUT.gray, w, h, sig), g2 = gblur(CUT.gray, w, h, sig * 1.6);
+    var eps = -.006 - (100 - CUT.det) / 100 * .02, inner = m ? gblur(m, w, h, 3) : null;
+    var bin = new Uint8Array(n);
+    for (i = 0; i < n; i++) { var D = g1[i] - .985 * g2[i], k = inner ? inner[i] > .7 : true; if (D < eps && k) bin[i] = 1; }
+    /* quitar puntitos sueltos: componentes chicas */
+    var minA = Math.max(12, Math.round(n / 9000)), lab = new Int32Array(n), stack = [];
+    for (i = 0; i < n; i++) {
+      if (!bin[i] || lab[i]) continue;
+      var comp = [], idv = i + 1; stack.push(i); lab[i] = idv;
+      while (stack.length) { var q = stack.pop(); comp.push(q); var qx = q % w, qy = (q / w) | 0;
+        for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) { var nx = qx + dx, ny = qy + dy; if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue; var nq = ny * w + nx; if (bin[nq] && !lab[nq]) { lab[nq] = idv; stack.push(nq); } } }
+      if (comp.length < minA) comp.forEach(function (q) { bin[q] = 0; });
+    }
+    var fl = new Float32Array(n); for (i = 0; i < n; i++) fl[i] = bin[i];
+    fl = gblur(fl, w, h, .6);
+    for (i = 0; i < n; i++) { var v = Math.min(1, fl[i] * 1.8); if (v > out[i]) out[i] = v; }
+  }
+  var c = document.createElement('canvas'); c.width = w; c.height = h; var cg = c.getContext('2d'), id = cg.createImageData(w, h);
+  for (i = 0; i < n; i++) { var al = out[i] < .12 ? 0 : out[i]; id.data[i * 4 + 3] = Math.round(al * 255); }
+  cg.putImageData(id, 0, 0); return c;
+}
+var CUTCACHE = { key: '', c: null };
+function cutResult() {
+  var key = [CUT.url, CUT.style, CUT.det, CUT.grosor, CUT.maskVer || 0].join('|');
+  if (CUTCACHE.key !== key || !CUTCACHE.c) { CUTCACHE.c = cutLines(); CUTCACHE.key = key; }
+  return CUTCACHE.c;
+}
+
+/* ---------- lienzo ---------- */
+function drawCut() {
+  var c = document.getElementById('cutc'); if (!c || !CUT.img) return;
+  c.width = CUT.w; c.height = CUT.h; var g = c.getContext('2d');
+  if (CUT.view === 'foto') {
+    g.drawImage(CUT.img, 0, 0);
+    if (CUT.hasMask) {
+      var t = document.createElement('canvas'); t.width = CUT.w; t.height = CUT.h; var tg = t.getContext('2d');
+      tg.fillStyle = 'rgba(244,239,232,.82)'; tg.fillRect(0, 0, CUT.w, CUT.h); tg.globalCompositeOperation = 'destination-out'; tg.drawImage(CUT.mask, 0, 0);
+      g.drawImage(t, 0, 0);
+      var o = document.createElement('canvas'); o.width = CUT.w; o.height = CUT.h; var og = o.getContext('2d');
+      og.drawImage(cutResult(), 0, 0); og.globalCompositeOperation = 'source-in'; og.fillStyle = '#A4573A'; og.fillRect(0, 0, CUT.w, CUT.h);
+      g.globalAlpha = .9; g.drawImage(o, 0, 0); g.globalAlpha = 1;
+    }
+  } else { g.fillStyle = '#fff'; g.fillRect(0, 0, CUT.w, CUT.h); g.drawImage(cutResult(), 0, 0); }
+  if (CUT.drag) { g.setLineDash([10, 8]); g.lineWidth = Math.max(2, CUT.w / 250); g.strokeStyle = '#171412'; var d = CUT.drag; g.strokeRect(Math.min(d.x0, d.x1), Math.min(d.y0, d.y1), Math.abs(d.x1 - d.x0), Math.abs(d.y1 - d.y0)); g.setLineDash([]); }
+  if (!c.dataset.wired) {
+    c.dataset.wired = '1';
+    var pos = function (e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * CUT.w / r.width, y: (e.clientY - r.top) * CUT.h / r.height }; };
+    var brush = function (p) {
+      var mg = CUT.mask.getContext('2d'), rad = Math.max(CUT.w, CUT.h) / 28;
+      mg.save(); if (CUT.tool === 'quitar') mg.globalCompositeOperation = 'destination-out';
+      var gr = mg.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.7, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      mg.fillStyle = gr; mg.beginPath(); mg.arc(p.x, p.y, rad, 0, 7); mg.fill(); mg.restore();
+    };
+    var down = false, last = 0;
+    c.addEventListener('pointerdown', function (e) {
+      if (CUT.busy) return; down = true; c.setPointerCapture(e.pointerId); var p = pos(e);
+      if (CUT.tool === 'caja') CUT.drag = { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
+      else { brush(p); CUT.hasMask = true; CUT.maskVer = (CUT.maskVer || 0) + 1; drawCut(); }
+    });
+    c.addEventListener('pointermove', function (e) {
+      if (!down) return; var p = pos(e);
+      if (CUT.tool === 'caja' && CUT.drag) { CUT.drag.x1 = p.x; CUT.drag.y1 = p.y; drawCut(); return; }
+      brush(p); CUT.maskVer = (CUT.maskVer || 0) + 1; var now = Date.now(); if (now - last > 90) { last = now; drawCut(); }
+    });
+    var up = function () {
+      if (!down) return; down = false;
+      if (CUT.tool === 'caja' && CUT.drag) {
+        var d = CUT.drag, b = { x: Math.min(d.x0, d.x1), y: Math.min(d.y0, d.y1), w: Math.abs(d.x1 - d.x0), h: Math.abs(d.y1 - d.y0) }; CUT.drag = null;
+        if (b.w > CUT.w / 25 && b.h > CUT.h / 25) return cutBoxes([b]);
+      }
+      drawCut();
+    };
+    c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+  }
+  c.style.touchAction = 'none';
+}
+function vRecorte() {
+  var chips = ['Solo el perro', 'Las personas', 'La flor', 'La cara'].map(function (p) { return '<button class="chip" data-cxq="' + p + '">' + p + '</button>'; }).join('');
+  var tools = [['caja', 'Marcar objeto'], ['sumar', 'Sumar'], ['quitar', 'Quitar']].map(function (t) { return '<button class="' + (CUT.tool === t[0] ? 'on' : '') + '" data-cxt="' + t[0] + '">' + t[1] + '</button>'; }).join('');
+  var styles = [['contorno', 'Contorno'], ['ambos', 'Contorno + detalles'], ['detalles', 'Solo detalles']].map(function (t) { return '<button class="' + (CUT.style === t[0] ? 'on' : '') + '" data-cxs="' + t[0] + '">' + t[1] + '</button>'; }).join('');
+  var hint = CUT.tool === 'caja' ? 'Arrastrá un rectángulo alrededor del objeto: lo detecto y lo recorto.' : (CUT.tool === 'sumar' ? 'Pintá con el dedo lo que falte del objeto.' : 'Pintá con el dedo lo que sobra.');
+  return '<div class="pad"><div class="row"><button class="round bordered" data-go="' + (CUT.target === 'calcar' ? 'calcar' : 'estudio') + '" aria-label="Volver">' + I.back + '</button><span class="eyebrow" style="margin:0">Foto a dibujo</span></div>' +
+    '<h1>Recortar y <em>dibujar</em></h1>' +
+    (S.aiOk ? '<div class="aimini"><span class="eyebrow">' + I.spark + ' ¿Qué querés dejar?</span><input id="cutq" class="tinput" placeholder="Ej: solo el perro · las dos personas"><div class="chips tight">' + chips + '</div>' +
+      '<button class="primary" data-cx="ai"' + (CUT.busy ? ' disabled' : '') + '>Buscar en la foto</button></div>' : '') +
+    '<div class="seg">' + tools + '</div><p class="muted xs" style="margin-top:-14px">' + hint + '</p>' +
+    '<div class="cutwrap"><canvas id="cutc" aria-label="Foto y recorte"></canvas>' + (CUT.busy ? '<div class="cutbusy">Detectando el objeto…</div>' : '') + '</div>' +
+    (CUT.names.length ? '<p class="sm">Encontré: <b>' + esc(CUT.names.join(', ')) + '</b></p>' : '') + (CUT.err ? '<p class="sm">' + esc(CUT.err) + '</p>' : '') +
+    '<div class="seg two-v"><button class="' + (CUT.view === 'foto' ? 'on' : '') + '" data-cxv="foto">Sobre la foto</button><button class="' + (CUT.view === 'dibujo' ? 'on' : '') + '" data-cxv="dibujo">Solo el dibujo</button></div>' +
+    '<span class="eyebrow">Líneas</span><div class="seg">' + styles + '</div>' +
+    (CUT.style !== 'contorno' ? '<label class="sm">Cantidad de detalle <input type="range" min="0" max="100" value="' + CUT.det + '" data-cxr="det"></label>' : '') +
+    '<label class="sm">Grosor de línea <input type="range" min="1" max="8" step=".5" value="' + CUT.grosor + '" data-cxr="grosor"></label>' +
+    '<div class="two"><button class="secondary" data-cx="clear">Empezar de nuevo</button><button class="secondary" data-cx="all">Toda la foto</button></div>' +
+    '<button class="primary" data-cx="use">' + (CUT.target === 'calcar' ? 'Usar para calcar' : 'Agregar al diseño') + '</button></div>';
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return; var d = b.dataset;
+  if (d.cxq) { var ci = document.getElementById('cutq'); if (ci) ci.value = d.cxq; return aiCut(d.cxq); }
+  if (d.cxt) { CUT.tool = d.cxt; render(); return setTimeout(drawCut, 0); }
+  if (d.cxs) { CUT.style = d.cxs; render(); return setTimeout(drawCut, 0); }
+  if (d.cxv) { CUT.view = d.cxv; render(); return setTimeout(drawCut, 0); }
+  if (!d.cx) return;
+  switch (d.cx) {
+    case 'ai': var q = ((document.getElementById('cutq') || {}).value || '').trim(); if (!q) { CUT.err = 'Escribí qué querés dejar.'; render(); return setTimeout(drawCut, 0); } return aiCut(q);
+    case 'clear': CUT.mask.getContext('2d').clearRect(0, 0, CUT.w, CUT.h); CUT.hasMask = false; CUT.names = []; CUT.boxes = []; CUT.tool = 'caja'; CUT.maskVer = (CUT.maskVer || 0) + 1; break;
+    case 'all': return cutBoxes([{ x: 0, y: 0, w: CUT.w, h: CUT.h }]);
+    case 'use':
+      var res = cutResult(), tc = document.createElement('canvas'); tc.width = res.width; tc.height = res.height; var tg = tc.getContext('2d'); tg.drawImage(res, 0, 0);
+      var url = tc.toDataURL('image/png');
+      if (CUT.target === 'calcar') { TRC.src = url; TRC.name = 'Foto'; TRC.gray = null; return set({ screen: 'calcar' }); }
+      set({ screen: 'estudio' }); return addImgLayer(url, CUT.names.length ? CUT.names.join(' y ') : 'Foto');
+  }
+  render(); setTimeout(drawCut, 0);
+});
+document.addEventListener('input', function (e) {
+  var d = e.target.dataset || {}; if (!d.cxr) return;
+  CUT[d.cxr] = +e.target.value; clearTimeout(CUT.t); CUT.t = setTimeout(drawCut, 120);
+});
+/* ===================== v12: moldes para cerámica en placa ===================== */
+var MD_PRESETS = {
+  taza: { nm: 'Taza', type: 'perfil', H: 95, ds: [80, 80], asa: true, tapa: false, wall: 'bandas', n: 1 },
+  cono: { nm: 'Vaso cónico', type: 'perfil', H: 110, ds: [65, 90], asa: false, tapa: false, wall: 'bandas', n: 1 },
+  lata: { nm: 'Lata', type: 'perfil', H: 122, ds: [66, 66], asa: false, tapa: true, wall: 'bandas', n: 1 },
+  pote: { nm: 'Pote con tapa', type: 'perfil', H: 90, ds: [100, 100], asa: false, tapa: true, wall: 'bandas', n: 1 },
+  cuenco: { nm: 'Cuenco', type: 'perfil', H: 70, ds: [70, 120, 145, 160, 165], asa: false, tapa: false, wall: 'gajos', n: 8 },
+  jarron: { nm: 'Jarrón', type: 'perfil', H: 200, ds: [80, 150, 160, 95, 70], asa: false, tapa: false, wall: 'bandas', n: 4 },
+  botella: { nm: 'Botella', type: 'perfil', H: 220, ds: [80, 85, 85, 40, 30], asa: false, tapa: false, wall: 'bandas', n: 4 },
+  jarra: { nm: 'Jarra', type: 'perfil', H: 180, ds: [90, 105, 110, 105, 100], asa: true, tapa: false, wall: 'bandas', n: 2 },
+  plato: { nm: 'Plato con borde', type: 'perfil', H: 25, ds: [150, 220], asa: false, tapa: false, wall: 'bandas', n: 1 },
+  caja: { nm: 'Caja', type: 'caja', W: 120, D: 80, H: 70, asa: false, tapa: true }
+};
+var SHAPE_TO_MOLD = { taza: 'taza', lata: 'lata', sombrerera: 'pote', pote: 'pote', jarron: 'jarron', vaso: 'cono', maceta: 'cono', cuenco: 'cuenco', jarra: 'jarra', botella: 'botella', plato: 'plato', bolso: 'caja', cara: 'jarron', burbujas: 'jarron' };
+var MD = { preset: 'taza', t: 6, base: 'final', shrink: 12, union: 'tope', fromIdea: '' };
+Object.assign(MD, JSON.parse(JSON.stringify(MD_PRESETS.taza)));
+try { var mdS = JSON.parse(localStorage.getItem('md_cfg') || 'null'); if (mdS && typeof mdS.t === 'number') Object.assign(MD, mdS); } catch (e) {}
+function mdSave() { try { localStorage.setItem('md_cfg', JSON.stringify(MD)); } catch (e) {} }
+function mdPreset(k, from) { var keep = { t: MD.t, base: MD.base, shrink: MD.shrink, union: MD.union }; Object.keys(MD_PRESETS[k]).forEach(function () {}); MD = Object.assign({}, keep, JSON.parse(JSON.stringify(MD_PRESETS[k])), { preset: k, fromIdea: from || '' }); mdSave(); }
+
+/* ---------- geometría ---------- */
+function mdK() { return MD.base === 'final' ? 1 / (1 - Math.min(30, Math.max(0, MD.shrink)) / 100) : 1; }
+function mdRadius(h) { /* radio exterior a la altura h (0..H), interpolación suave entre los puntos */
+  var ds = MD.ds, n = ds.length; if (n === 1) return ds[0] / 2;
+  var u = Math.max(0, Math.min(1, h / MD.H)) * (n - 1), i = Math.min(n - 2, Math.floor(u)), f = u - i;
+  if (n === 2) return (ds[0] + (ds[1] - ds[0]) * f) / 2;
+  var p0 = ds[Math.max(0, i - 1)], p1 = ds[i], p2 = ds[i + 1], p3 = ds[Math.min(n - 1, i + 2)];
+  var v = .5 * ((2 * p1) + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (-p0 + 3 * p1 - 3 * p2 + p3) * f * f * f);
+  return Math.max(2, v / 2);
+}
+function arcPts(R, a0, a1, cx, cy, sgn, n) { var o = []; for (var k = 0; k <= n; k++) { var a = a0 + (a1 - a0) * k / n; o.push([cx + Math.sin(a) * R, cy - sgn * Math.cos(a) * R]); } return o; }
+function circlePts(r, n) { var o = []; for (var k = 0; k < n; k++) { var a = k / n * Math.PI * 2; o.push([r + Math.cos(a) * r, r + Math.sin(a) * r]); } return o; }
+function normPiece(p) {
+  var xs = [], ys = []; p.cut.forEach(function (q) { q.forEach(function (pt) { xs.push(pt[0]); ys.push(pt[1]); }); });
+  var x0 = Math.min.apply(null, xs), y0 = Math.min.apply(null, ys);
+  var mv = function (L) { return L.map(function (q) { return q.map(function (pt) { return [pt[0] - x0, pt[1] - y0]; }); }); };
+  p.cut = mv(p.cut); p.marks = mv(p.marks || []); p.dash = mv(p.dash || []);
+  if (p.lab) p.lab = [p.lab[0] - x0, p.lab[1] - y0];
+  p.w = Math.max.apply(null, xs) - x0; p.h = Math.max.apply(null, ys) - y0; return p;
+}
+/* banda tronco-cónica desarrollada: rectángulo o sector de corona */
+function bandPiece(rb, rt, hh, name, ovl) {
+  var big = Math.max(rb, rt), small = Math.min(rb, rt), s = Math.sqrt(hh * hh + (big - small) * (big - small)), p = { name: name, cut: [], marks: [], dash: [] };
+  var tick = function (a, b) { p.marks.push([a, b]); };
+  if (big - small < .4) {
+    var L = 2 * Math.PI * big, ext = ovl ? 10 : 0;
+    p.cut.push([[0, 0], [L + ext, 0], [L + ext, s], [0, s]]);
+    if (ext) p.dash.push([[L, 0], [L, s]]);
+    [.25, .5, .75].forEach(function (f) { tick([L * f, 0], [L * f, 3]); tick([L * f, s], [L * f, s - 3]); });
+    p.lab = [L / 2, s / 2]; p.info = fmm(L) + ' × ' + fmm(s) + ' mm'; return normPiece(p);
+  }
+  var Ro = s * big / (big - small), Ri = Ro - s, th = 2 * Math.PI * big / Ro, sgn = rt > rb ? 1 : -1, ex = ovl ? 10 / Ro : 0;
+  if (th > Math.PI * .9) { th = th / 2; p.qty = 2; p.name += ' · mitad'; }
+  var outer = arcPts(Ro, -th / 2, th / 2 + ex, 0, 0, sgn, 120), inner = arcPts(Ri, th / 2 + ex, -th / 2, 0, 0, sgn, 120);
+  p.cut.push(outer.concat(inner));
+  if (ex) { var a = th / 2; p.dash.push([[Math.sin(a) * Ro, -sgn * Math.cos(a) * Ro], [Math.sin(a) * Ri, -sgn * Math.cos(a) * Ri]]); }
+  [.25, .5, .75].forEach(function (f) { var a = -th / 2 + th * f; [[Ro, -3], [Ri, 3]].forEach(function (rr) { tick([Math.sin(a) * rr[0], -sgn * Math.cos(a) * rr[0]], [Math.sin(a) * (rr[0] + rr[1]), -sgn * Math.cos(a) * (rr[0] + rr[1])]); }); });
+  var rm = (Ro + Ri) / 2; p.lab = [0, -sgn * rm];
+  p.info = 'radios ' + fmm(Ro) + ' y ' + fmm(Ri) + ' mm · ' + (th * 180 / Math.PI).toFixed(1) + '°';
+  return normPiece(p);
+}
+function gorePiece(N, k, t) {
+  var H = MD.H * k, pts = [], L = 0, prev = null, samples = 80;
+  for (var j = 0; j <= samples; j++) { var h = t + (H - t) * j / samples, r = mdRadius(h / k) * k - t / 2; if (prev) L += Math.hypot(h - prev[0], r - prev[1]); pts.push([L, Math.PI * r / N]); prev = [h, r]; }
+  var right = pts.map(function (q) { return [q[1], L - q[0]]; }), left = pts.slice().reverse().map(function (q) { return [-q[1], L - q[0]]; });
+  var p = { name: 'Gajo de pared', qty: N, cut: [right.concat(left)], marks: [], dash: [[[0, 0], [0, L]]] };
+  [.25, .5, .75].forEach(function (f) { var q = pts[Math.round(f * samples)]; p.marks.push([[q[1], L - q[0]], [q[1] - 3, L - q[0]]], [[-q[1], L - q[0]], [-q[1] + 3, L - q[0]]]); });
+  p.lab = [0, L * .55]; p.info = 'alto ' + fmm(L) + ' mm · ancho máx. ' + fmm(2 * Math.max.apply(null, pts.map(function (q) { return q[1]; }))) + ' mm';
+  return normPiece(p);
+}
+function rectPiece(w, h, name, qty) { return normPiece({ name: name, qty: qty || 1, cut: [[[0, 0], [w, 0], [w, h], [0, h]]], marks: [], lab: [w / 2, h / 2], info: fmm(w) + ' × ' + fmm(h) + ' mm' }); }
+function discPiece(r, name, qty) { var p = normPiece({ name: name, qty: qty || 1, cut: [circlePts(r, 160)], marks: [[[r - 3, r], [r + 3, r]], [[r, r - 3], [r, r + 3]]], lab: [r, r + r * .35], info: 'Ø ' + fmm(2 * r) + ' mm' }); return p; }
+function mdPieces() {
+  var k = mdK(), t = MD.t * k, P = [];
+  if (MD.type === 'caja') {
+    var W = MD.W * k, D = MD.D * k, H = MD.H * k;
+    P.push(rectPiece(W, D, 'Base'), rectPiece(W, H - t, 'Pared larga', 2), rectPiece(D - 2 * t, H - t, 'Pared corta', 2));
+    if (MD.tapa) P.push(rectPiece(W, D, 'Tapa'), rectPiece(W - 2 * t - 1, 12, 'Pestaña de tapa (larga)', 2), rectPiece(D - 4 * t - 1, 12, 'Pestaña de tapa (corta)', 2));
+    return P;
+  }
+  var H = MD.H * k, rBase = mdRadius(0) * k, rTop = mdRadius(MD.H) * k;
+  P.push(discPiece(rBase, 'Base'));
+  if (MD.wall === 'gajos' && MD.ds.length > 2) P.push(gorePiece(Math.max(3, MD.n), k, t));
+  else {
+    var n = MD.ds.length > 2 ? Math.max(1, MD.n) : 1;
+    for (var b = 0; b < n; b++) {
+      var h0 = t + (H - t) * b / n, h1 = t + (H - t) * (b + 1) / n;
+      var pc = bandPiece(mdRadius(h0 / k) * k - t / 2, mdRadius(h1 / k) * k - t / 2, h1 - h0, n > 1 ? 'Pared · banda ' + (b + 1) + ' de ' + n + ' (desde abajo)' : 'Pared', MD.union === 'solapa');
+      P.push(pc);
+    }
+  }
+  if (MD.asa) P.push(rectPiece(20 * k, Math.max(60, H * .85), 'Asa (tira)'));
+  if (MD.tapa) P.push(discPiece(rTop + 3 * k, 'Tapa'), rectPiece(2 * Math.PI * (rTop - t - 1.5), 12, 'Pestaña de tapa'));
+  return P;
+}
+
+/* ---------- acomodar en hojas A4 ---------- */
+var A4 = { w: 210, h: 297, m: 10, head: 14 };
+function mdLayout(P) {
+  var pw = A4.w - 2 * A4.m, ph = A4.h - 2 * A4.m - A4.head - 8, gap = 8, pages = [], cur = null, x = 0, y = 0, rowH = 0;
+  var items = []; P.forEach(function (p) { for (var q = 0; q < (p.qty && p.name.indexOf('Gajo') < 0 ? 1 : 1); q++) items.push(p); });
+  items.sort(function (a, b) { return b.h - a.h; });
+  items.forEach(function (p) {
+    var fitsP = p.w <= pw && p.h <= ph, fitsL = p.h <= pw && p.w <= ph;
+    if (!fitsP && !fitsL) { pages.push({ big: p }); return; }
+    var rot = !fitsP;
+    var w = rot ? p.h : p.w, h = rot ? p.w : p.h;
+    if (!cur) { cur = { items: [] }; pages.push(cur); x = 0; y = 0; rowH = 0; }
+    if (x + w > pw) { x = 0; y += rowH + gap; rowH = 0; }
+    if (y + h > ph) { cur = { items: [] }; pages.push(cur); x = 0; y = 0; rowH = 0; }
+    cur.items.push({ p: p, x: x, y: y, rot: rot }); x += w + gap; rowH = Math.max(rowH, h);
+  });
+  return pages;
+}
+function mdTx(pt, it) { return it.rot ? [it.x + pt[1], it.y + it.p.w - pt[0]] : [it.x + pt[0], it.y + pt[1]]; }
+
+/* ---------- dibujo en canvas (vista previa) ---------- */
+function mdDrawPiece(g, p, sc, ox, oy, rot) {
+  var tx = function (pt) { var q = rot ? [pt[1], p.w - pt[0]] : pt; return [ox + q[0] * sc, oy + q[1] * sc]; };
+  var poly = function (L, close) { g.beginPath(); L.forEach(function (pt, i) { var q = tx(pt); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); if (close) g.closePath(); };
+  g.fillStyle = '#FBF6EF'; g.strokeStyle = '#171412'; g.lineWidth = 1.2;
+  p.cut.forEach(function (L) { poly(L, true); g.fill(); g.stroke(); });
+  g.strokeStyle = '#A4573A'; g.lineWidth = 1; p.marks.forEach(function (L) { poly(L); g.stroke(); });
+  g.setLineDash([4, 3]); g.strokeStyle = '#B8975A'; (p.dash || []).forEach(function (L) { poly(L); g.stroke(); }); g.setLineDash([]);
+  if (p.lab) { var q = tx(p.lab); g.fillStyle = '#171412'; g.font = '600 ' + Math.max(8, Math.min(11, 40 * sc)) + 'px Inter, sans-serif'; g.textAlign = 'center'; g.fillText(p.name + (p.qty > 1 ? ' ×' + p.qty : ''), q[0], q[1]); }
+}
+function drawMdPreview() {
+  var c = document.getElementById('mdc'); if (!c) return;
+  var P = mdPieces(), W = c.parentNode.clientWidth - 24, gap = 10, x = 0, y = 0, rowH = 0, pos = [];
+  var total = P.reduce(function (s, p) { return s + p.w * p.h; }, 0), sc = Math.min(1.2, Math.sqrt(W * 330 / (total * 2.2 || 1)));
+  P.forEach(function (p) { var w = p.w * sc, h = p.h * sc; if (w > W) { sc = Math.min(sc, W / p.w); } });
+  P.forEach(function (p) { var w = p.w * sc, h = p.h * sc; if (x + w > W && x > 0) { x = 0; y += rowH + gap; rowH = 0; } pos.push([x, y]); x += w + gap; rowH = Math.max(rowH, h); });
+  var dpr = window.devicePixelRatio || 1; c.width = W * dpr; c.height = (y + rowH + 2) * dpr; c.style.width = W + 'px'; c.style.height = (y + rowH + 2) + 'px';
+  var g = c.getContext('2d'); g.scale(dpr, dpr); P.forEach(function (p, i) { mdDrawPiece(g, p, sc, pos[i][0], pos[i][1], false); });
+  var pr = document.getElementById('mdprof'); if (pr) drawMdProfile(pr);
+}
+function drawMdProfile(c) {
+  var W = 120, Hh = 150, dpr = window.devicePixelRatio || 1; c.width = W * dpr; c.height = Hh * dpr; c.style.width = W + 'px'; c.style.height = Hh + 'px';
+  var g = c.getContext('2d'); g.scale(dpr, dpr);
+  if (MD.type === 'caja') { var s0 = Math.min(90 / MD.W, 110 / MD.H); g.fillStyle = '#C98A68'; g.fillRect(60 - MD.W * s0 / 2, 130 - MD.H * s0, MD.W * s0, MD.H * s0); return; }
+  var maxR = 0; for (var h = 0; h <= MD.H; h += MD.H / 60) maxR = Math.max(maxR, mdRadius(h));
+  var sc = Math.min(52 / maxR, 120 / MD.H), base = 138;
+  var grd = g.createLinearGradient(0, 0, W, 0); grd.addColorStop(0, '#9E4E31'); grd.addColorStop(.55, '#C98A68'); grd.addColorStop(1, '#93472C');
+  g.beginPath(); for (h = 0; h <= MD.H + .01; h += MD.H / 60) { var r = mdRadius(h) * sc; h ? g.lineTo(60 + r, base - h * sc) : g.moveTo(60 + r, base - h * sc); }
+  for (h = MD.H; h >= -.01; h -= MD.H / 60) { r = mdRadius(Math.max(0, h)) * sc; g.lineTo(60 - r, base - Math.max(0, h) * sc); }
+  g.closePath(); g.fillStyle = grd; g.fill();
+  if (MD.asa) { var hr = mdRadius(MD.H * .55) * sc; g.strokeStyle = '#A4573A'; g.lineWidth = 5; g.beginPath(); g.arc(60 + hr, base - MD.H * .55 * sc, MD.H * .22 * sc, -Math.PI / 2, Math.PI / 2); g.stroke(); }
+  if (MD.tapa) { var tr = mdRadius(MD.H) * sc; g.fillStyle = '#7E3B21'; g.fillRect(60 - tr - 2, base - MD.H * sc - 5, 2 * tr + 4, 4); }
+}
+
+/* ---------- exportar: PDF y SVG vectoriales ---------- */
+async function mdPDF() {
+  var J = await loadJsPDF(), P = mdPieces(), pages = mdLayout(P), doc = new J({ unit: 'mm', format: 'a4' }), n = 0, totalPages = 0;
+  pages.forEach(function (pg) { if (pg.big) { var p = pg.big, pw = A4.w - 2 * A4.m, ph = A4.h - 2 * A4.m - A4.head - 8; totalPages += Math.ceil(p.w / (pw - 10)) * Math.ceil(p.h / (ph - 10)); } else totalPages++; });
+  var head = function (extra) {
+    doc.setFontSize(9); doc.setTextColor(40); doc.text('Atelier Guadi · Moldes para placa · ' + (MD_PRESETS[MD.preset] ? MD_PRESETS[MD.preset].nm : '') + ' · hoja ' + (++n) + ' de ' + totalPages, A4.m, A4.m + 3);
+    doc.setTextColor(110); doc.text((extra || '') + 'Placa de ' + MD.t + ' mm' + (MD.base === 'final' ? ' · agrandado ' + MD.shrink + ' % por contracción' : '') + ' · Línea negra: corte · marcas terracota: para alinear', A4.m, A4.m + 7);
+    var ry = A4.h - A4.m - 1; doc.setDrawColor(0); doc.setLineWidth(.3); doc.line(A4.m, ry, A4.m + 50, ry); for (var tt = 0; tt <= 50; tt += 10) doc.line(A4.m + tt, ry - (tt % 50 ? 1.5 : 3), A4.m + tt, ry);
+    doc.setTextColor(60); doc.text('Esta regla mide 5 cm: imprimí al 100 %, sin ajustar a la página.', A4.m + 54, ry);
+  };
+  var drawP = function (p, map) {
+    doc.setLineDashPattern([], 0); doc.setDrawColor(0); doc.setLineWidth(.35);
+    p.cut.forEach(function (L) { var q = L.map(map); doc.lines(q.slice(1).map(function (pt, i) { return [pt[0] - q[i][0], pt[1] - q[i][1]]; }), q[0][0], q[0][1], [1, 1], 'S', true); });
+    doc.setDrawColor(164, 87, 58); doc.setLineWidth(.3); p.marks.forEach(function (L) { var q = L.map(map); doc.line(q[0][0], q[0][1], q[1][0], q[1][1]); });
+    doc.setDrawColor(184, 151, 90); doc.setLineDashPattern([2, 1.5], 0); (p.dash || []).forEach(function (L) { var q = L.map(map); doc.line(q[0][0], q[0][1], q[1][0], q[1][1]); });
+    doc.setLineDashPattern([], 0);
+    if (p.lab) { var l = map(p.lab); doc.setFontSize(9); doc.setTextColor(23); doc.text(p.name + (p.qty > 1 ? ' — cortar ' + p.qty : ''), l[0], l[1], { align: 'center' }); doc.setFontSize(7); doc.setTextColor(120); doc.text(p.info || '', l[0], l[1] + 4, { align: 'center' }); }
+  };
+  var oy = A4.m + A4.head, first = true;
+  pages.forEach(function (pg) {
+    if (pg.big) {
+      var p = pg.big, pw = A4.w - 2 * A4.m, ph = A4.h - 2 * A4.m - A4.head - 8, ov = 10, cols = Math.ceil((p.w - ov) / (pw - ov)), rows = Math.ceil((p.h - ov) / (ph - ov));
+      for (var r = 0; r < rows; r++) for (var cc = 0; cc < cols; cc++) {
+        if (!first) doc.addPage('a4', 'portrait'); first = false; head('Pieza grande: fila ' + (r + 1) + ', columna ' + (cc + 1) + ' (superponer 1 cm) · ');
+        var x0 = cc * (pw - ov), y0 = r * (ph - ov);
+        doc.saveGraphicsState(); doc.rect(A4.m, oy, pw, ph, null); doc.clip(); doc.discardPath();
+        drawP(p, function (pt) { return [A4.m + pt[0] - x0, oy + pt[1] - y0]; });
+        doc.restoreGraphicsState();
+        doc.setDrawColor(150); doc.setLineWidth(.2); [[A4.m, oy], [A4.m + pw, oy], [A4.m, oy + ph], [A4.m + pw, oy + ph]].forEach(function (q) { doc.line(q[0] - 3, q[1], q[0] + 3, q[1]); doc.line(q[0], q[1] - 3, q[0], q[1] + 3); });
+      }
+      return;
+    }
+    if (!first) doc.addPage('a4', 'portrait'); first = false; head('');
+    pg.items.forEach(function (it) { drawP(it.p, function (pt) { var q = mdTx(pt, it); return [A4.m + q[0], oy + q[1]]; }); });
+  });
+  await saveFile(doc.output('blob'), 'moldes-' + MD.preset + '.pdf');
+}
+async function mdSVG() {
+  var P = mdPieces(), gap = 12, x = 0, y = 0, rowH = 0, maxW = 0, parts = [], LIM = 600;
+  P.forEach(function (p) {
+    if (x + p.w > LIM && x > 0) { x = 0; y += rowH + gap; rowH = 0; }
+    var path = function (L, close) { return 'M' + L.map(function (pt) { return (pt[0] + x).toFixed(2) + ',' + (pt[1] + y).toFixed(2); }).join(' L') + (close ? ' Z' : ''); };
+    parts.push('<g id="' + esc(p.name).replace(/[^a-zA-Z0-9]+/g, '-') + '"><path d="' + p.cut.map(function (L) { return path(L, true); }).join(' ') + '" fill="none" stroke="#000" stroke-width="0.35"/>' +
+      p.marks.map(function (L) { return '<path d="' + path(L) + '" stroke="#A4573A" stroke-width="0.3"/>'; }).join('') +
+      (p.dash || []).map(function (L) { return '<path d="' + path(L) + '" stroke="#B8975A" stroke-width="0.3" stroke-dasharray="2 1.5"/>'; }).join('') +
+      (p.lab ? '<text x="' + (p.lab[0] + x).toFixed(1) + '" y="' + (p.lab[1] + y).toFixed(1) + '" font-family="Arial" font-size="4" text-anchor="middle">' + esc(p.name + (p.qty > 1 ? ' ×' + p.qty : '')) + '</text>' : '') + '</g>');
+    x += p.w + gap; rowH = Math.max(rowH, p.h); maxW = Math.max(maxW, x);
+  });
+  var W = Math.max(10, maxW - gap).toFixed(1), H = (y + rowH).toFixed(1);
+  var svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + W + 'mm" height="' + H + 'mm" viewBox="0 0 ' + W + ' ' + H + '">\n<title>Atelier Guadi · moldes ' + MD.preset + '</title>\n' + parts.join('\n') + '\n</svg>\n';
+  await saveFile(new Blob([svg], { type: 'image/svg+xml' }), 'moldes-' + MD.preset + '.svg');
+}
+
+/* ---------- 3D de la forma ---------- */
+function mdOpen3D() {
+  if (!window.THREE) return;
+  var T = THREE, o = document.getElementById('v3'); if (!o) return;
+  var pts = [];
+  if (MD.type === 'caja') return open3D({ id: 'md', title: 'Caja', shape: '__mdbox', glaze: '#E9E2D6', bg: '#EDE5D9' });
+  for (var j = 0; j <= 48; j++) { var h = MD.H * j / 48; pts.push(new T.Vector2(mdRadius(h) / 100, h / 100)); }
+  var inner = []; for (j = 48; j >= 0; j--) { h = Math.max(MD.t, MD.H * j / 48); inner.push(new T.Vector2(Math.max(.001, (mdRadius(h) - MD.t) / 100), h / 100)); }
+  var prof = [new T.Vector2(.001, 0)].concat(pts).concat(inner).concat([new T.Vector2(.001, MD.t / 100)]);
+  MD3D = prof; open3D({ id: 'md', title: (MD_PRESETS[MD.preset] || {}).nm || 'Mi forma', shape: '__md', glaze: '#E9E2D6', bg: '#EDE5D9' });
+}
+var MD3D = null;
+
+/* ---------- pantalla ---------- */
+function mdField(id, label, val, unit, min, max, step) { return '<label class="plf"><span>' + label + '</span><span class="plin"><input type="number" inputmode="decimal" data-md="' + id + '" value="' + val + '" min="' + (min || 0) + '" max="' + (max || 2000) + '" step="' + (step || 1) + '"><em>' + unit + '</em></span></label>'; }
+function vMoldes() {
+  var P = mdPieces(), presets = Object.keys(MD_PRESETS).map(function (k) { return '<button class="chip' + (MD.preset === k ? ' on' : '') + '" data-mdp="' + k + '">' + MD_PRESETS[k].nm + '</button>'; }).join('');
+  var f = '';
+  if (MD.type === 'caja') f = mdField('W', 'Ancho', MD.W, 'mm') + mdField('D', 'Profundidad', MD.D, 'mm') + mdField('H', 'Alto', MD.H, 'mm');
+  else if (MD.ds.length === 2 && MD.ds[0] === MD.ds[1]) f = mdField('d0', 'Diámetro', MD.ds[0], 'mm') + mdField('H', 'Alto', MD.H, 'mm');
+  else if (MD.ds.length === 2) f = mdField('d1', 'Diámetro arriba', MD.ds[1], 'mm') + mdField('d0', 'Diámetro abajo', MD.ds[0], 'mm') + mdField('H', 'Alto', MD.H, 'mm');
+  else f = mdField('H', 'Alto total', MD.H, 'mm') + MD.ds.slice().map(function (d, i) { return { d: d, i: i }; }).reverse().map(function (o) { var pct = Math.round(o.i / (MD.ds.length - 1) * 100); return mdField('d' + o.i, 'Diámetro ' + (pct === 0 ? 'en la base' : (pct === 100 ? 'arriba' : 'al ' + pct + ' %')), o.d, 'mm'); }).join('');
+  var curvy = MD.type !== 'caja' && MD.ds.length > 2;
+  return '<div class="pad"><h1>Moldes para <em>placa</em></h1><p class="muted sm">Patrones a tamaño real para cortar la placa de arcilla y armar la pieza: base, pared, asa y tapa. Se imprimen en A4.</p>' +
+    (MD.fromIdea && find(MD.fromIdea) ? '<div class="note"><span>Moldes para <b>' + esc(find(MD.fromIdea).title) + '</b>. Ajustá las medidas a tu gusto.</span></div>' : '') +
+    '<span class="eyebrow">1 · La forma</span><div class="chips tight">' + presets + '</div>' +
+    '<div class="mdtop"><canvas id="mdprof" aria-label="Silueta de la pieza"></canvas><div class="plgrid one">' + f + '</div></div>' +
+    (curvy ? '<p class="muted xs">Cambiá los diámetros para inventar tu propia forma. La silueta se actualiza sola.</p>' : '') +
+    '<button class="secondary" data-mdx="3d">' + I.cube + ' Ver la forma en 3D</button>' +
+    '<span class="eyebrow">2 · La placa</span><div class="plgrid">' + mdField('t', 'Grosor de la placa', MD.t, 'mm', 3, 15, .5) + (MD.base === 'final' ? mdField('shrink', 'Contracción', MD.shrink, '%', 0, 25, .5) : '') + '</div>' +
+    '<div class="two"><button class="secondary' + (MD.base === 'final' ? ' on' : '') + '" data-mdb="final">Medidas finales</button><button class="secondary' + (MD.base === 'crudo' ? ' on' : '') + '" data-mdb="crudo">Medidas en crudo</button></div>' +
+    '<p class="muted xs">' + (MD.base === 'final' ? 'Las medidas son de la pieza terminada y el molde sale agrandado por la contracción. Pedile el % a la profe (muchas arcillas contraen entre 10 y 13 %).' : 'Las medidas son de la pieza recién armada, sin agrandar.') + '</p>' +
+    (MD.type !== 'caja' ? '<span class="eyebrow">3 · La pared</span>' +
+      (curvy ? '<div class="seg two-v"><button class="' + (MD.wall === 'bandas' ? 'on' : '') + '" data-mdw="bandas">Bandas horizontales</button><button class="' + (MD.wall === 'gajos' ? 'on' : '') + '" data-mdw="gajos">Gajos verticales</button></div>' +
+        '<div class="plgrid">' + mdField('n', MD.wall === 'gajos' ? 'Cantidad de gajos' : 'Cantidad de bandas', MD.n, '', MD.wall === 'gajos' ? 3 : 1, 16) + '</div>' +
+        '<p class="muted xs">' + (MD.wall === 'gajos' ? 'Los gajos sirven para formas muy redondeadas (cuencos, esferas): se unen lado a lado, como una pelota.' : 'Cada banda es un anillo que se apoya sobre el anterior; las marcas terracota ayudan a alinearlas.') + '</p>' : '') +
+      '<div class="seg two-v"><button class="' + (MD.union === 'tope' ? 'on' : '') + '" data-mdu="tope">Unión a tope (con bisel)</button><button class="' + (MD.union === 'solapa' ? 'on' : '') + '" data-mdu="solapa">Unión superpuesta (+1 cm)</button></div>' +
+      '<label class="plchk"><input type="checkbox" data-mdc="asa"' + (MD.asa ? ' checked' : '') + '> Asa</label><label class="plchk"><input type="checkbox" data-mdc="tapa"' + (MD.tapa ? ' checked' : '') + '> Tapa con pestaña</label>'
+      : '<label class="plchk"><input type="checkbox" data-mdc="tapa"' + (MD.tapa ? ' checked' : '') + '> Tapa con pestaña</label>') +
+    '<span class="eyebrow">' + (MD.type !== 'caja' ? '4' : '3') + ' · Las piezas</span><div class="plprev"><canvas id="mdc"></canvas></div>' +
+    '<div class="list tight">' + P.map(function (p) { return '<div class="mdrow"><b>' + esc(p.name) + (p.qty > 1 ? ' ×' + p.qty : '') + '</b><span class="muted xs">' + esc(p.info || '') + '</span></div>'; }).join('') + '</div>' +
+    (MD.msg ? '<p class="sm">' + esc(MD.msg) + '</p>' : '') +
+    '<div class="two"><button class="primary" data-mdx="pdf"' + (MD.busy ? ' disabled' : '') + '>' + (MD.busy ? 'Preparando…' : 'PDF tamaño real') + '</button><button class="secondary" data-mdx="svg">SVG vectorial</button></div>' +
+    '<p class="muted xs">Imprimí al 100 %. Cada hoja trae una regla de 5 cm para comprobar. El SVG sirve para una cortadora (Cricut, láser) o para abrir en Inkscape.</p>' +
+    mdGuide() + '</div>';
+}
+var MDG = [
+  { t: 'Preparar los moldes', p: ['Imprimí y recortá los moldes. Si los vas a usar muchas veces, pegalos sobre cartulina, radiografía o acetato.', 'Pasá a la placa las marcas terracota con una punta: sirven para alinear las piezas al armar.'] },
+  { t: 'Cortar la placa', p: ['Estirá una placa pareja del grosor elegido (con listones a los costados del palo de amasar).', 'Dejala orear hasta que se pueda levantar sin deformarse (blanda pero firme).', 'Apoyá el molde y cortá con cúter o aguja, con el cuchillo derecho.'] },
+  { t: 'Armar la pieza', p: ['Para unión a tope, biselá los bordes a 45°. Para superpuesta, usá la solapa marcada con línea punteada.', 'Rayá y poné barbotina en todos los bordes que se van a unir.', 'Enrollá la pared alrededor de la base (o de un tubo o botella con papel de diario) y apretá las uniones de los dos lados.', 'En bandas: subí de a una alineando las marcas. En gajos: uní los gajos de a dos y después las mitades.', 'Reforzá las uniones de adentro con un rollito fino y alisá con una costilla.'] },
+  { t: 'Secado', p: ['Secá lento y parejo, tapado con nylon los primeros días, para que las uniones no se abran.', 'Asa y tapa se pegan con la pieza en estado de cuero.'] }
+];
+function mdGuide() {
+  return '<span class="eyebrow">Cómo usarlos</span><div class="list tight">' + MDG.map(function (m, i) {
+    var open = S.mdg === i;
+    return '<div class="acc"><button class="acch" data-mdg="' + i + '"><span class="anum">' + (i + 1) + '</span><span class="abody"><span class="at">' + m.t + '</span></span><span class="sign">' + (open ? '−' : '+') + '</span></button>' +
+      (open ? '<ol class="olist" style="padding:0 16px 16px 40px">' + m.p.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ol>' : '') + '</div>';
+  }).join('') + '</div>';
+}
+document.addEventListener('input', function (e) {
+  var d = e.target.dataset || {}; if (!d.md) return;
+  var v = parseFloat(String(e.target.value).replace(',', '.')); if (isNaN(v) || v <= 0) return;
+  if (/^d\d$/.test(d.md)) { var ix = +d.md.slice(1); if (MD.ds.length === 2 && MD.ds[0] === MD.ds[1] && ix === 0) MD.ds = [v, v]; else MD.ds[ix] = v; }
+  else MD[d.md] = d.md === 'n' ? Math.round(v) : v;
+  mdSave(); clearTimeout(MD.tm); MD.tm = setTimeout(function () { drawMdPreview(); var rows = document.querySelectorAll('.mdrow'); var P = mdPieces(); if (rows.length !== P.length) return render(); P.forEach(function (p, i) { rows[i].innerHTML = '<b>' + esc(p.name) + (p.qty > 1 ? ' ×' + p.qty : '') + '</b><span class="muted xs">' + esc(p.info || '') + '</span>'; }); }, 160);
+});
+document.addEventListener('change', function (e) { var d = e.target.dataset || {}; if (d.mdc) { MD[d.mdc] = e.target.checked; mdSave(); render(); } });
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return; var d = b.dataset;
+  if (d.mdp) { mdPreset(d.mdp); return render(); }
+  if (d.mdb) { MD.base = d.mdb; mdSave(); return render(); }
+  if (d.mdw) { MD.wall = d.mdw; MD.n = d.mdw === 'gajos' ? Math.max(6, MD.n) : Math.min(MD.n, 6); mdSave(); return render(); }
+  if (d.mdu) { MD.union = d.mdu; mdSave(); return render(); }
+  if (d.mdg) { S.mdg = S.mdg === +d.mdg ? -1 : +d.mdg; return render(); }
+  if (d.mdFrom) { var it = find(d.mdFrom); if (it && SHAPE_TO_MOLD[it.shape]) mdPreset(SHAPE_TO_MOLD[it.shape], it.id); return set({ screen: 'moldes' }); }
+  if (d.mdx === '3d') return mdOpen3D();
+  if (d.mdx === 'pdf') { MD.busy = true; MD.msg = ''; render(); mdPDF().catch(function (er) { MD.msg = er && er.code === 'declined' ? '' : 'No se pudo generar el PDF. Probá de nuevo.'; }).then(function () { MD.busy = false; render(); }); return; }
+  if (d.mdx === 'svg') { mdSVG().catch(function (er) { if (!(er && er.code === 'declined')) { MD.msg = 'No se pudo descargar el SVG.'; render(); } }); return; }
+});
 /* ===================== v11: Maison — orden nuevo, proyectos y marca ===================== */
 var MARK_VASE = 'M38,13 L62,13 C61,16 57,18 57,22 C57,28 58,31 63,35 C72,41 78,50 78,60 C78,73 69,82 61,85 L62,89 L38,89 L39,85 C31,82 22,73 22,60 C22,50 28,41 37,35 C42,31 43,28 43,22 C43,18 39,16 38,13 Z';
 var MARK_GLAZE = 'M0,0 H100 V49 C92,49 90,52 86,52 C82,52 81,50 77,50 C72,50 71,54 71,57 C71,60 68,60 68,57 C68,53 66,51 61,51 C57,51 57,55 57,63 C57,68 53,68 53,63 C53,56 52,52 47,52 C42,52 40,50 37,50 C34,50 34,54 34,59 C34,62 31,62 31,59 C31,53 29,50 24,50 C18,50 14,52 0,52 Z';
 var markN = 0;
 function markSVG(size, night) {
-  var k = 'mk' + (markN++), clay = night ? ['#E2D8CA', '#F6F1E9', '#D9CEBF'] : ['#9E4E31', '#BE6F4A', '#93472C'], gl = night ? ['#9C7A44', '#E2C38A', '#8E6C3A'] : ['#141110', '#2A2421', '#0F0D0C'];
+  var k = 'mk' + (markN++), clay = night ? ['#E2D8CA', '#F6F1E9', '#D9CEBF'] : ['#9E4E31', '#BE6F4A', '#93472C'], gl = night ? ['#9C7A44', '#E2C38A', '#8E6C3A'] : ['#E6DED3', '#FFFFFF', '#D8CEC1'];
   return '<svg class="mark" width="' + size + '" height="' + size + '" viewBox="14 8 72 86" aria-hidden="true"><defs><clipPath id="' + k + 'v"><path d="' + MARK_VASE + '"/></clipPath>' +
     '<linearGradient id="' + k + 'c" x1="0" x2="1"><stop offset="0" stop-color="' + clay[0] + '"/><stop offset=".55" stop-color="' + clay[1] + '"/><stop offset="1" stop-color="' + clay[2] + '"/></linearGradient>' +
     '<linearGradient id="' + k + 'g" x1="0" x2="1"><stop offset="0" stop-color="' + gl[0] + '"/><stop offset=".45" stop-color="' + gl[1] + '"/><stop offset="1" stop-color="' + gl[2] + '"/></linearGradient></defs>' +
-    '<path d="' + MARK_VASE + '" fill="url(#' + k + 'c)"/><g clip-path="url(#' + k + 'v)"><path d="' + MARK_GLAZE + '" fill="url(#' + k + 'g)"/><path d="M30,44 C29,52 30,62 34,72" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2.2" stroke-linecap="round"/></g>' +
+    '<path d="' + MARK_VASE + '" fill="url(#' + k + 'c)" stroke="#000" stroke-opacity=".14" stroke-width=".9"/><g clip-path="url(#' + k + 'v)"><path d="' + MARK_GLAZE + '" fill="url(#' + k + 'g)" stroke="#000" stroke-opacity=".1" stroke-width=".8"/><path d="M30,44 C29,52 30,62 34,72" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2.2" stroke-linecap="round"/></g>' +
     '<path d="M38.4,13 L61.6,13" stroke="' + (night ? '#F1D9A6' : '#C9A66B') + '" stroke-width="2" stroke-linecap="round"/></svg>';
 }
 function wordmark(small) {
@@ -2699,18 +3227,18 @@ function vMia() {
 
 /* ---------- estudio: tres herramientas ---------- */
 function studioTabs(on) {
-  return '<div class="seg" role="tablist">' + [['estudio', 'Diseñar'], ['calcar', 'Calcar'], ['plantilla', 'Plantilla']].map(function (t) { return '<button role="tab" aria-selected="' + (on === t[0]) + '" class="' + (on === t[0] ? 'on' : '') + '" data-go="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
+  return '<div class="seg" role="tablist">' + [['estudio', 'Diseñar'], ['calcar', 'Calcar'], ['plantilla', 'Plantilla'], ['moldes', 'Moldes']].map(function (t) { return '<button role="tab" aria-selected="' + (on === t[0]) + '" class="' + (on === t[0] ? 'on' : '') + '" data-go="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
 }
 
 /* ---------- render con el orden nuevo ---------- */
 var SUBS = { texturas: 'explorar', referentes: 'explorar', apps: 'explorar', proceso: null, idear: 'explorar', colecciones: null };
 function render() {
-  var v = { home: vHome, explorar: vExplorar, colecciones: vColecciones, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte, plantilla: vPlantilla, calib: vCalib }[S.screen] || vHome;
+  var v = { home: vHome, explorar: vExplorar, colecciones: vColecciones, list: vList, ai: vAi, idea: vIdea, pasos: vPasos, idear: vIdear, referentes: vReferentes, proceso: vProceso, mia: vMia, texturas: vTexturas, textura: vTextura, calcar: vCalcar, apps: vApps, buscar: vBuscar, estudio: vEstudio, recorte: vRecorte, plantilla: vPlantilla, calib: vCalib, moldes: vMoldes }[S.screen] || vHome;
   var keep = {}, act = document.activeElement && document.activeElement.id;
   ['aiq', 'sq', 'trq'].forEach(function (k) { var el = document.getElementById(k); if (el && el.value) keep[k] = el.value; });
   var html = v();
-  var tab = { idea: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', pasos: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', list: 'explorar', colecciones: 'explorar', ai: 'home', textura: 'explorar', texturas: 'explorar', apps: 'explorar', buscar: 'explorar', referentes: 'explorar', proceso: S.from === 'mia' ? 'mia' : 'explorar', idear: 'explorar', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio' }[S.screen] || S.screen;
-  if (['estudio', 'calcar', 'plantilla'].indexOf(S.screen) >= 0) html = '<div class="segwrap"><span class="eyebrow">Estudio</span>' + studioTabs(S.screen) + '</div>' + html;
+  var tab = { idea: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', pasos: S.from === 'home' || S.from === 'mia' ? S.from : 'explorar', list: 'explorar', colecciones: 'explorar', ai: 'home', textura: 'explorar', texturas: 'explorar', apps: 'explorar', buscar: 'explorar', referentes: 'explorar', proceso: S.from === 'mia' ? 'mia' : 'explorar', idear: 'explorar', recorte: 'estudio', calcar: 'estudio', plantilla: 'estudio', calib: 'estudio', moldes: 'estudio' }[S.screen] || S.screen;
+  if (['estudio', 'calcar', 'plantilla', 'moldes'].indexOf(S.screen) >= 0) html = '<div class="segwrap"><span class="eyebrow">Estudio</span>' + studioTabs(S.screen) + '</div>' + html;
   if (['texturas', 'referentes', 'idear', 'colecciones', 'proceso'].indexOf(S.screen) >= 0) html = html.replace('<div class="pad">', '<div class="pad"><button class="backlink" data-go="' + (tab === 'mia' ? 'mia' : 'explorar') + '">' + I.back + (tab === 'mia' ? 'Mi atelier' : 'Explorar') + '</button>');
   document.getElementById('main').innerHTML = html;
   Object.keys(keep).forEach(function (k) { var el = document.getElementById(k); if (el && !el.value) el.value = keep[k]; });
@@ -2719,6 +3247,8 @@ function render() {
   if (S.screen === 'estudio' && typeof drawStage === 'function') { stageGestures(); drawStage(); }
   if (S.screen === 'recorte' && typeof drawCut === 'function') setTimeout(drawCut, 0);
   if (S.screen === 'plantilla' && typeof drawPlPreview === 'function') setTimeout(drawPlPreview, 0);
+  if (S.screen === 'moldes' && typeof drawMdPreview === 'function') setTimeout(drawMdPreview, 0);
+  if (S.screen === 'recorte' && typeof drawCut === 'function') setTimeout(drawCut, 0);
   if (S.screen === 'pasos') { var pj = projOf(S.id); if (pj && pj.step !== S.step) { pj.step = S.step; persist(); } }
 }
 
